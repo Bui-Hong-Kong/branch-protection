@@ -42,7 +42,7 @@
         "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "CodeQL"
+            "context": "CodeQL / Analyze (go) (dynamic)"
           }
         ]
       }
