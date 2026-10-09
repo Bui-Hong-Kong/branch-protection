@@ -6,7 +6,9 @@ Merge xảy ra khi đủ ba điều kiện:
 
 - CodeQL đã có kết quả cho commit của PR và cho `main`.
 - Không có security alert mức high hoặc critical, và không có alert mức Error.
-- Nhánh đã chứa mọi commit mới của `main`, và check `CodeQL / Analyze (go) (dynamic)` pass.
+- Nhánh đã chứa mọi commit mới của `main`, và check `Analyze (javascript)` pass.
+
+App nằm trong `web/` (Vite + React).
 
 Ruleset không yêu cầu approving review, nên một người vẫn merge được sau khi các điều kiện trên thỏa.
 
@@ -30,18 +32,18 @@ Sau khi hai gói đã bật trên repo, làm tiếp các bước public ở dư�
 2. Push protection trên tài khoản cá nhân chỉ chặn secret khi push lên repo public. Repo private dùng push protection của chính repo.
 3. CodeQL default setup dùng phút GitHub Actions của gói private. Actions của repo phải đang bật.
 
-Ruleset vẫn tắt cho đến khi phân tích CodeQL trên `main` đã xong và PR trong cùng repo hiện check tên thật, ví dụ `CodeQL / Analyze (go) (dynamic)`. File `.github/ruleset-main.json` phải dùng đúng tên đó ở trường `context`.
+Ruleset vẫn tắt cho đến khi phân tích CodeQL trên `main` đã xong và PR trong cùng repo hiện check tên thật, ví dụ `Analyze (javascript)`. File `.github/ruleset-main.json` phải dùng đúng tên đó ở trường `context`.
 
 ## Bật trên GitHub, theo thứ tự
 
 Ruleset phải tắt trong suốt các bước 1–6. Bật sớm thì required status check chưa tồn tại và không ai merge được.
 
 1. Push repo này lên `main`.
-2. Thêm một file thuộc ngôn ngữ CodeQL hỗ trợ (JavaScript, TypeScript, Python, Go, Java, …) **thẳng lên `main`**. Default setup không chạy scan khi repo chỉ có Markdown. Ngôn ngữ phải có trên nhánh mặc định thì CodeQL mới bắt đầu phân tích. Pull request đầu tiên chưa tạo được check.
+2. Có code JavaScript trong `web/` trên `main` (Vite + React). Default setup / workflow CodeQL cần ngôn ngữ hỗ trợ trên nhánh mặc định; repo chỉ Markdown thì scan không chạy.
 3. Bật GitHub Actions cho repo nếu tab Actions đang tắt.
 4. **Settings → Advanced Security** (mục Security and quality ở sidebar). Trong **Code Security**, cạnh **CodeQL analysis**, chọn **Set up → Default → Enable CodeQL**.
 5. Đợi lần phân tích CodeQL trên `main` chạy xong.
-6. Tạo nhánh trong **cùng repo** (không dùng fork), mở PR vào `main`. Trên PR, đọc đúng tên check. Trên lab này check phân tích là `CodeQL / Analyze (go) (dynamic)`. Check `Code scanning results / CodeQL` là kết quả alert, không dùng làm required status check.
+6. Tạo nhánh trong **cùng repo** (không dùng fork), mở PR vào `main`. Trên PR, đọc đúng tên check. Trên lab này check phân tích là `Analyze (javascript)`. Check `Code scanning results / CodeQL` là kết quả alert, không dùng làm required status check.
 7. **Settings → Rules → Rulesets → New branch ruleset**, target `main`, hoặc tạo ruleset từ `.github/ruleset-main.json`. Trường `context` phải trùng tên check phân tích ở bước 6. Sai tên thì mọi PR đứng ở "Expected — waiting for status to be reported".
 
 CodeQL default setup không chạy trên pull request từ fork. Check phân tích sẽ không xuất hiện và ruleset giữ PR đó mãi.
@@ -54,7 +56,7 @@ CodeQL default setup không chạy trên pull request từ fork. Check phân tí
 | Block force pushes | Không force-push lên `main` |
 | Require a pull request | Mọi thay đổi vào `main` đi qua PR. Push thẳng bị từ chối, kể cả admin, vì `bypass_actors` để trống |
 | Require code scanning results, tool CodeQL | Chặn merge khi security alert là high hoặc critical, khi alert có mức Error, khi scan chưa xong, hoặc khi `main` và commit của PR chưa có kết quả CodeQL. Alert security medium/low, warning, và note không chặn |
-| Required status check `CodeQL / Analyze (go) (dynamic)` | Phân tích CodeQL phải kết thúc với trạng thái pass |
+| Required status check `Analyze (javascript)` | Phân tích CodeQL (JS trong `web/`) phải kết thúc với trạng thái pass |
 | Require branches to be up to date | Nhánh còn thiếu commit của `main` thì nút merge khóa. Trên PR bấm **Update branch**. CodeQL chạy lại trên commit đã gồm latest `main` |
 
 Hai rule CodeQL làm hai việc khác nhau. Rule code scanning nhìn **mức alert**. Required status check nhìn **lần chạy đã pass chưa**, và là điều kiện để GitHub khóa nhánh cũ: tùy chọn up to date chỉ có hiệu lực khi có ít nhất một required status check. Check phân tích có thể pass trong khi rule code scanning vẫn chặn vì còn alert vượt ngưỡng.
@@ -96,4 +98,4 @@ git push
 1. Ruleset đang active, `git push origin main` → GitHub từ chối.
 2. Commit một AWS access key id rồi push → push protection từ chối push.
 3. PR có security alert high hoặc critical → rule code scanning chặn merge, kể cả khi check phân tích vẫn pass.
-4. Có commit mới trên `main` mà nhánh chưa update → nút merge khóa đến khi **Update branch** xong và check `CodeQL / Analyze (go) (dynamic)` pass trên commit mới.
+4. Có commit mới trên `main` mà nhánh chưa update → nút merge khóa đến khi **Update branch** xong và check `Analyze (javascript)` pass trên commit mới.
