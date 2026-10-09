@@ -9,10 +9,10 @@ func greet(name string) string {
 }
 
 func ping() string {
-	return appName + ": ok from dev-1"
+	return appName + ": ok from dev-2"
 }
 
 func main() {
-	fmt.Println(greet("dev-1"))
+	fmt.Println(greet("dev-2"))
 	fmt.Println(ping())
 }
