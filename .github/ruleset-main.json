@@ -60,7 +60,7 @@
         "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "Analyze (go)"
+            "context": "Analyze (javascript)"
           },
           {
             "context": "Guard config"

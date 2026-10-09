@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go:
-    name: Analyze (go)
+  javascript:
+    name: Analyze (javascript)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,7 +27,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: go
+          languages: javascript
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
@@ -35,4 +35,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:go"
+          category: "/language:javascript"
