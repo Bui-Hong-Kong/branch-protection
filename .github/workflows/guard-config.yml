@@ -1,11 +1,9 @@
 # Only the allowed owner may change workflow, ruleset, or CODEOWNERS files.
-# Complements CODEOWNERS + require_code_owner_review.
+# Runs on merge queue only. Complements CODEOWNERS + require_code_owner_review.
 
 name: Guard config
 
 on:
-  pull_request:
-    branches: [main]
   merge_group:
     types: [checks_requested]
 

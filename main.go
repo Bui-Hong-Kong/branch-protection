@@ -18,7 +18,8 @@ func ready() string {
 }
 
 func main() {
-	fmt.Println(greet("dev-2"))
+	fmt.Println(greet("dev-1"))
 	fmt.Println(ping())
 	fmt.Println(ready())
+	fmt.Println(status())
 }
