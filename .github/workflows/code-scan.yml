@@ -1,12 +1,9 @@
-# Security scan for PRs, main, and merge queue temporary branches.
+# Security scan for merge queue temporary branches only.
+# Fail here → PR is removed from the queue; fix and re-enqueue.
 
 name: Code scan
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   merge_group:
     types: [checks_requested]
 
@@ -16,7 +13,7 @@ permissions:
   security-events: write
 
 concurrency:
-  group: code-scan-${{ github.event.pull_request.number || github.ref }}
+  group: code-scan-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
