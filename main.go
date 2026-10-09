@@ -9,7 +9,7 @@ func greet(name string) string {
 }
 
 func ping() string {
-	return appName + ": ok"
+	return appName + ": ok from dev-1"
 }
 
 func main() {
