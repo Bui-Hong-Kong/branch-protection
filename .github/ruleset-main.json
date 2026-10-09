@@ -2,7 +2,13 @@
   "name": "protect-main",
   "target": "branch",
   "enforcement": "active",
-  "bypass_actors": [],
+  "bypass_actors": [
+    {
+      "actor_id": 203213967,
+      "actor_type": "User",
+      "bypass_mode": "always"
+    }
+  ],
   "conditions": {
     "ref_name": {
       "include": ["refs/heads/main"],
@@ -42,7 +48,7 @@
         "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "CodeQL"
+            "context": "Analyze (go)"
           }
         ]
       }
