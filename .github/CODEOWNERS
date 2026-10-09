@@ -1,0 +1,6 @@
+# Only these owners can approve PRs that change protected config.
+# Enforced by ruleset: require_code_owner_review = true
+
+.github/workflows/ @BuiHongKong
+.github/ruleset-main.json @BuiHongKong
+.github/CODEOWNERS @BuiHongKong

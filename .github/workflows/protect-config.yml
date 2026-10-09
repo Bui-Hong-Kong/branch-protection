@@ -1,0 +1,72 @@
+# Fail when protected config paths change unless the change comes from the allowed owner.
+# Complements CODEOWNERS + require_code_owner_review.
+
+name: protect-config
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: protect-config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Block unauthorized config changes
+        env:
+          ALLOWED_ACTOR: BuiHongKong
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          echo "Changed files:"
+          echo "$changed"
+
+          protected="$(echo "$changed" | grep -E '^(\.github/workflows/|\.github/ruleset-main\.json|\.github/CODEOWNERS$)' || true)"
+          if [ -z "$protected" ]; then
+            echo "No protected config paths changed."
+            exit 0
+          fi
+
+          echo "Protected paths changed:"
+          echo "$protected"
+
+          if [ "$ACTOR" = "$ALLOWED_ACTOR" ]; then
+            echo "Actor $ACTOR is allowed."
+            exit 0
+          fi
+
+          # merge_group actor is github-merge-queue[bot]; verify commit authors instead.
+          authors="$(git log --format='%ae' "$BASE_SHA..$HEAD_SHA" -- \
+            .github/workflows \
+            .github/ruleset-main.json \
+            .github/CODEOWNERS | sort -u)"
+          echo "Authors touching protected paths:"
+          echo "$authors"
+
+          while IFS= read -r email; do
+            [ -z "$email" ] && continue
+            case "$email" in
+              *BuiHongKong*) ;;
+              *)
+                echo "::error::Only @$ALLOWED_ACTOR may change workflow, ruleset, or CODEOWNERS files. Saw: $email"
+                exit 1
+                ;;
+            esac
+          done <<< "$authors"
+
+          echo "All protected-path commits are from the allowed owner."
