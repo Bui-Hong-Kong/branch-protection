@@ -63,7 +63,7 @@
             "context": "Analyze (go)"
           },
           {
-            "context": "protect-config"
+            "context": "Guard config"
           }
         ]
       }

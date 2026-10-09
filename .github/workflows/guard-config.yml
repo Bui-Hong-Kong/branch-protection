@@ -1,7 +1,7 @@
-# Fail when protected config paths change unless the change comes from the allowed owner.
+# Only the allowed owner may change workflow, ruleset, or CODEOWNERS files.
 # Complements CODEOWNERS + require_code_owner_review.
 
-name: protect-config
+name: Guard config
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   guard:
-    name: protect-config
+    name: Guard config
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
