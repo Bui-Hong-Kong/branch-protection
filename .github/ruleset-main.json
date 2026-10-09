@@ -64,6 +64,24 @@
           },
           {
             "context": "Guard config"
+          },
+          {
+            "context": "Lint"
+          },
+          {
+            "context": "Build"
+          },
+          {
+            "context": "npm audit"
+          },
+          {
+            "context": "Test"
+          },
+          {
+            "context": "Dependency scan"
+          },
+          {
+            "context": "Gitleaks"
           }
         ]
       }
