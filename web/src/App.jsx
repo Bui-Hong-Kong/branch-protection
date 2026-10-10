@@ -22,6 +22,7 @@ function App() {
             Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
           </p>
           <p className="dev-banner">dev-1 · protection checklist demo</p>
+          <p className="dev-banner">dev-2 · small UI tweak</p>
         </div>
         <button
           type="button"

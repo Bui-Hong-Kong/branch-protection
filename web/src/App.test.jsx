@@ -26,4 +26,9 @@ describe('App', () => {
     await user.click(button)
     expect(button).toHaveTextContent('Count is 1')
   })
+
+  it('shows the dev-2 banner', () => {
+    render(<App />)
+    expect(screen.getByText(/dev-2 · small ui tweak/i)).toBeInTheDocument()
+  })
 })
