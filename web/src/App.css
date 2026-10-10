@@ -17,6 +17,60 @@
   }
 }
 
+.dev-banner {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+#protection-panel {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2rem;
+  text-align: left;
+}
+
+#protection-panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.protection-summary {
+  margin: 0 0 1rem;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.protection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.protection-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--accent-bg);
+}
+
+.gate-label {
+  font-weight: 500;
+}
+
+.gate-status {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
 .hero {
   position: relative;
 
