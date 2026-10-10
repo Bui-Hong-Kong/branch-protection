@@ -1,18 +1,19 @@
-# Pre-merge checks on merge queue only (lint, build, test, dependency/secret scans).
-# Fail here → PR is removed from the queue; fix and re-enqueue.
-# Dependency scan uses OSV (lockfile); dependency-review-action is PR-only.
+# CI on pull requests only (lint, build, test, dependency scan).
+# Merge queue does not re-run these jobs — it only serializes merges into main.
+# Dependency scan uses OSV (lockfile).
+# Secret scanning relies on GitHub push protection / secret scanning (Gitleaks removed).
 
 name: Pre-merge checks
 
 on:
-  merge_group:
-    types: [checks_requested]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: pre-merge-${{ github.ref }}
+  group: pre-merge-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -86,17 +87,3 @@ jobs:
         with:
           scan-args: |-
             --lockfile=web/package-lock.json
-
-  gitleaks:
-    name: Gitleaks
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
