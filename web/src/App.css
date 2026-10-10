@@ -17,6 +17,12 @@
   }
 }
 
+.dev-banner {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
 .hero {
   position: relative;
 

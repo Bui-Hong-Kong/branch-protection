@@ -7,4 +7,9 @@ describe('App', () => {
     render(<App />)
     expect(screen.getByRole('heading', { name: /get started/i })).toBeInTheDocument()
   })
+
+  it('shows the dev-2 banner', () => {
+    render(<App />)
+    expect(screen.getByText(/dev-2 · small ui tweak/i)).toBeInTheDocument()
+  })
 })
