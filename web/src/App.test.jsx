@@ -29,6 +29,6 @@ describe('App', () => {
 
   it('shows the dev-2 banner', () => {
     render(<App />)
-    expect(screen.getByText(/dev-2 · small ui tweak/i)).toBeInTheDocument()
+    expect(screen.getByText(/dev-2 · small ui tweak \(round 2\)/i)).toBeInTheDocument()
   })
 })
