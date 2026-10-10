@@ -1,11 +1,14 @@
-# CodeQL on pull requests only.
-# Merge queue does not re-run this job — it only serializes merges into main.
+# CodeQL on pull requests, and on main so the default-branch baseline
+# stays javascript-only (avoids Neutral "configuration not found" for old /language:go).
 
 name: Code scan
 
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
