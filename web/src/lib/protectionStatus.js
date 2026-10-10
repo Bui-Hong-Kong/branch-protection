@@ -11,7 +11,6 @@ export const REQUIRED_GATES = Object.freeze([
   { id: 'audit', label: 'npm audit', kind: 'security' },
   { id: 'test', label: 'Test', kind: 'quality' },
   { id: 'osv', label: 'Dependency scan', kind: 'security' },
-  { id: 'gitleaks', label: 'Gitleaks', kind: 'security' },
 ])
 
 /**

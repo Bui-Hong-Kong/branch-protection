@@ -11,7 +11,7 @@ describe('ProtectionPanel', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/ready for merge queue/i)).toBeInTheDocument()
     expect(screen.getByText('Analyze (javascript)')).toBeInTheDocument()
-    expect(screen.getByText('Gitleaks')).toBeInTheDocument()
+    expect(screen.getByText('Dependency scan')).toBeInTheDocument()
     expect(screen.getByText('Guard config')).toBeInTheDocument()
   })
 })

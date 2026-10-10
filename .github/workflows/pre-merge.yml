@@ -1,6 +1,7 @@
-# CI on pull requests only (lint, build, test, dependency/secret scans).
+# CI on pull requests only (lint, build, test, dependency scan).
 # Merge queue does not re-run these jobs — it only serializes merges into main.
 # Dependency scan uses OSV (lockfile).
+# Secret scanning relies on GitHub push protection / secret scanning (Gitleaks removed).
 
 name: Pre-merge checks
 
@@ -86,17 +87,3 @@ jobs:
         with:
           scan-args: |-
             --lockfile=web/package-lock.json
-
-  gitleaks:
-    name: Gitleaks
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

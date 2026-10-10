@@ -8,7 +8,7 @@ import {
 
 describe('protectionStatus', () => {
   it('lists every required merge-queue gate', () => {
-    expect(REQUIRED_GATES).toHaveLength(8)
+    expect(REQUIRED_GATES).toHaveLength(7)
     expect(REQUIRED_GATES.map((gate) => gate.id)).toEqual([
       'codeql',
       'guard',
@@ -17,12 +17,11 @@ describe('protectionStatus', () => {
       'audit',
       'test',
       'osv',
-      'gitleaks',
     ])
   })
 
   it('counts gates by kind', () => {
-    expect(countGatesByKind(REQUIRED_GATES, 'security')).toBe(4)
+    expect(countGatesByKind(REQUIRED_GATES, 'security')).toBe(3)
     expect(countGatesByKind(REQUIRED_GATES, 'quality')).toBe(3)
     expect(countGatesByKind(REQUIRED_GATES, 'policy')).toBe(1)
   })
@@ -53,7 +52,7 @@ describe('protectionStatus', () => {
   it('returns pending when some gates are still running', () => {
     const results = REQUIRED_GATES.map((gate) => ({
       id: gate.id,
-      status: gate.id === 'gitleaks' ? 'pending' : 'pass',
+      status: gate.id === 'osv' ? 'pending' : 'pass',
     }))
     expect(summarizeMergeReadiness(results)).toBe('pending')
     expect(readinessLabel('pending')).toMatch(/waiting/i)
