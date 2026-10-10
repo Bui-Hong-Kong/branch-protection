@@ -1,11 +1,11 @@
-# Security scan for merge queue temporary branches only.
-# Fail here → PR is removed from the queue; fix and re-enqueue.
+# CodeQL on pull requests only.
+# Merge queue does not re-run this job — it only serializes merges into main.
 
 name: Code scan
 
 on:
-  merge_group:
-    types: [checks_requested]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -13,7 +13,7 @@ permissions:
   security-events: write
 
 concurrency:
-  group: code-scan-${{ github.ref }}
+  group: code-scan-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
