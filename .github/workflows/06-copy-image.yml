@@ -1,8 +1,8 @@
 # Manual: copy image env-1 → env-2 with crane (no rebuild).
-# Run from Actions → Copy image → Run workflow.
+# Run from Actions → 6. Copy image → Run workflow.
 # Uses repo variable AWS_ROLE_ARN_COPY (OIDC). Does not run on PR/merge.
 
-name: Copy image
+name: 6. Copy image
 
 on:
   workflow_dispatch:

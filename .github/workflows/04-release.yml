@@ -1,8 +1,8 @@
 # Create semver Git tags + GitHub Releases from Conventional Commits on main.
 # Does not commit back to main (avoids ruleset friction). Does not run on PRs.
-# After a release, use Push image / Copy image with tag vX.Y.Z.
+# After a release, run 5. Push image / 6. Copy image with tag vX.Y.Z.
 
-name: Release
+name: 4. Release
 
 on:
   push:

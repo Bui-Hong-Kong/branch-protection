@@ -1,9 +1,9 @@
 # Manual: build frontend image and push to ECR env-1 only.
-# Run from Actions → Push image → Run workflow.
-# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote to env-2 via Copy image.
+# Run from Actions → 5. Push image → Run workflow.
+# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote to env-2 via 6. Copy image.
 # Does not run on PR/merge.
 
-name: Push image
+name: 5. Push image
 
 on:
   workflow_dispatch:
@@ -78,4 +78,4 @@ jobs:
           echo "- \`${{ steps.meta.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`${{ steps.meta.outputs.image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Promote to env-2 with **Copy image** (same tag: \`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Promote to env-2 with **6. Copy image** (same tag: \`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"

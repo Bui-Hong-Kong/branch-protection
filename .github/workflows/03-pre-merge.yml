@@ -3,7 +3,7 @@
 # Dependency scan uses OSV (lockfile).
 # Secret scanning relies on GitHub push protection / secret scanning (Gitleaks removed).
 
-name: Pre-merge checks
+name: 3. Pre-merge checks
 
 on:
   pull_request:
@@ -81,7 +81,7 @@ jobs:
         working-directory: .
     steps:
       - uses: actions/checkout@v4
-      # dependency-review-action is PR-only; OSV scans the lockfile on merge_group.
+      # dependency-review-action is PR-only; OSV scans the lockfile.
       - name: Run OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
         with:

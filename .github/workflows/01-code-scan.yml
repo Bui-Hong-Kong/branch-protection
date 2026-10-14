@@ -1,7 +1,7 @@
 # CodeQL on pull requests, and on main so the default-branch baseline
 # stays javascript-only (avoids Neutral "configuration not found" for old /language:go).
 
-name: Code scan
+name: 1. Code scan
 
 on:
   pull_request:

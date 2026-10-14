@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Set BASE_PATH=/branch-protection/ in Deploy Pages workflow for project site.
+  // Optional public base path (e.g. subpath hosting). Docker image uses "/".
   base: process.env.BASE_PATH || '/',
   plugins: [react()],
   test: {
