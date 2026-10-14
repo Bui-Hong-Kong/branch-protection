@@ -11,9 +11,8 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the dev-1 protection demo banner and gate panel', () => {
+  it('shows the branch protection gates panel', () => {
     render(<App />)
-    expect(screen.getByText(/dev-1 · protection checklist demo/i)).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: /branch protection gates/i }),
     ).toBeInTheDocument()
@@ -25,10 +24,5 @@ describe('App', () => {
     const button = screen.getByRole('button', { name: /count is/i })
     await user.click(button)
     expect(button).toHaveTextContent('Count is 1')
-  })
-
-  it('shows the dev-2 banner', () => {
-    render(<App />)
-    expect(screen.getByText(/dev-2 · small ui tweak \(round 2\)/i)).toBeInTheDocument()
   })
 })

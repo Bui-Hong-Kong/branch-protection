@@ -1,0 +1,15 @@
+{
+  "name": "branch-protection",
+  "private": true,
+  "description": "Root tooling for releases (app code lives in web/)",
+  "scripts": {
+    "release": "semantic-release"
+  },
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "conventional-changelog-conventionalcommits": "^10.4.1",
+    "semantic-release": "^24.2.9"
+  }
+}

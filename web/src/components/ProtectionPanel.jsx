@@ -6,7 +6,7 @@ import {
 } from '../lib/protectionStatus'
 
 /**
- * Demo panel for the branch-protection lab (dev-1 change).
+ * Demo panel for the branch-protection lab.
  * Uses demo "all pass" results so UI + tests stay deterministic.
  */
 function ProtectionPanel() {

@@ -17,12 +17,6 @@
   }
 }
 
-.dev-banner {
-  margin-top: 0.5rem;
-  font-size: 0.95rem;
-  color: var(--accent);
-}
-
 #protection-panel {
   width: min(720px, 100%);
   margin: 0 auto;
