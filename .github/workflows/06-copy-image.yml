@@ -36,6 +36,7 @@ jobs:
   copy:
     name: Crane copy to env-2
     runs-on: ubuntu-latest
+    environment: env-2
     steps:
       - uses: actions/checkout@v4
 
