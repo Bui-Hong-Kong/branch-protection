@@ -20,7 +20,7 @@ function App() {
           <h1>Get started</h1>
           <p>
             Edit <code>src/App.jsx</code> and save to test <code>HMR</code>.
-            Pipeline lab ready.
+            Pipeline lab ready — release flow verified.
           </p>
         </div>
         <button
