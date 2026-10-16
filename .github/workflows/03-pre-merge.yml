@@ -1,9 +1,9 @@
 # Pre-merge quality gates with widely adopted language tooling.
 # Job names are stable (no matrix in the check name) for GitHub rulesets.
 #
-#   Java       → Checkstyle + SpotBugs (+ Maven package) on JDK 8
-#   Go         → gvt/glide restore (with gopkg.in remaps), then golangci-lint + go build
-#   JavaScript → ESLint (frontend/)
+#   Java       â†’ Checkstyle + SpotBugs (+ Maven package) on JDK 8
+#   Go         â†’ gvt/glide restore (with gopkg.in remaps), then golangci-lint + go build
+#   JavaScript â†’ ESLint (frontend/)
 #
 # Merge queue does not re-run these jobs.
 
@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           CHECKSTYLE_CFG="$GITHUB_WORKSPACE/.github/linters/checkstyle.xml"
           for svc in $JAVA_SERVICES; do
-            echo "::group::Lint Java — ${svc}"
+            echo "::group::Lint Java â€” ${svc}"
             cd "$GITHUB_WORKSPACE/backend/${svc}"
             mvn -B -DskipTests package
             mvn -B org.apache.maven.plugins:maven-checkstyle-plugin:3.3.1:check \
@@ -75,7 +75,7 @@ jobs:
 
           restore_gvt() {
             local svc="$1" root="$2"
-            echo "::group::Restore Go deps — ${svc}"
+            echo "::group::Restore Go deps â€” ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
@@ -86,13 +86,13 @@ jobs:
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
+              bash -c "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
             echo "::endgroup::"
           }
 
           restore_glide() {
             local svc="$1" root="$2"
-            echo "::group::Restore Go deps — ${svc}"
+            echo "::group::Restore Go deps â€” ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
@@ -103,13 +103,13 @@ jobs:
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
             echo "::endgroup::"
           }
 
           lint_one() {
             local svc="$1" root="$2"
-            echo "::group::Lint Go — ${svc}"
+            echo "::group::Lint Go â€” ${svc}"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
               -v "$GITHUB_WORKSPACE/.golangci.yml:/golangci.yml:ro" \
@@ -187,7 +187,7 @@ jobs:
         run: |
           set -euo pipefail
           for svc in $JAVA_SERVICES; do
-            echo "::group::Build Java — ${svc}"
+            echo "::group::Build Java â€” ${svc}"
             mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
             echo "::endgroup::"
           done
@@ -204,7 +204,7 @@ jobs:
           REWRITES="/scripts/gopath-git-rewrites.sh"
           build_gvt() {
             local service="$1" go_pkg="$2" go_root="$3"
-            echo "::group::Build Go — ${service}"
+            echo "::group::Build Go â€” ${service}"
             SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
             GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
             mkdir -p "$(dirname "$GOPATH_SRC")"
@@ -217,13 +217,13 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
           build_glide() {
             local service="$1" go_pkg="$2" go_root="$3"
-            echo "::group::Build Go — ${service}"
+            echo "::group::Build Go â€” ${service}"
             SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
             GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
             mkdir -p "$(dirname "$GOPATH_SRC")"
@@ -236,7 +236,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }

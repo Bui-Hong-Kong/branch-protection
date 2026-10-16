@@ -88,7 +88,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             echo "::endgroup::"
           }
           build_glide() {
@@ -106,7 +106,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             echo "::endgroup::"
           }
           build_gvt catalogue \

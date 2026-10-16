@@ -169,7 +169,7 @@ jobs:
             -e CGO_ENABLED=0 \
             -e GOPATH=/go \
             golang:1.17 \
-            bash -lc "bash /scripts/gopath-git-rewrites.sh && ${RESTORE} && go build -o /go/src/${GO_ROOT}/app ${GO_PKG}"
+            bash -c "bash /scripts/gopath-git-rewrites.sh && ${RESTORE} && go build -o /go/src/${GO_ROOT}/app ${GO_PKG}"
 
           cp "$GOPATH_SRC/app" "$SRC_DIR/app"
           ls -la "$SRC_DIR/app"
