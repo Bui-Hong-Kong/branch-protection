@@ -19,12 +19,10 @@ on:
           - all
           - carts
           - catalogue
-          - catalogue-db
           - orders
           - payment
           - shipping
           - user
-          - user-db
           - frontend
 
 permissions:
@@ -46,7 +44,7 @@ jobs:
       - id: set
         run: |
           set -euo pipefail
-          ALL='["carts","catalogue","catalogue-db","orders","payment","shipping","user","user-db","frontend"]'
+          ALL='["carts","catalogue","orders","payment","shipping","user","frontend"]'
           INPUT="${{ github.event.inputs.service || 'all' }}"
           if [ "$INPUT" = "all" ] || [ -z "$INPUT" ]; then
             echo "services=$ALL" >> "$GITHUB_OUTPUT"

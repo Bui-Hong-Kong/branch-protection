@@ -3,9 +3,9 @@ export const SERVICES = {
   carts: { path: "backend/carts/" },
   catalogue: {
     path: "backend/catalogue/",
+    // DB images are not released; schema will live on infra later.
     exclude: ["backend/catalogue/docker/catalogue-db/"],
   },
-  "catalogue-db": { path: "backend/catalogue/docker/catalogue-db/" },
   orders: { path: "backend/orders/" },
   payment: { path: "backend/payment/" },
   shipping: { path: "backend/shipping/" },
@@ -13,7 +13,6 @@ export const SERVICES = {
     path: "backend/user/",
     exclude: ["backend/user/docker/user-db/"],
   },
-  "user-db": { path: "backend/user/docker/user-db/" },
   frontend: { path: "frontend/" },
 };
 

@@ -139,26 +139,6 @@ jobs:
           set -euo pipefail
           docker build -f frontend/Dockerfile.ci -t sockshop-frontend:ci frontend
 
-  build-db:
-    name: Build (db)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Docker build catalogue-db + user-db
-        run: |
-          set -euo pipefail
-          echo "::group::catalogue-db"
-          docker build -t sockshop-catalogue-db:ci \
-            -f backend/catalogue/docker/catalogue-db/Dockerfile \
-            backend/catalogue/docker/catalogue-db
-          echo "::endgroup::"
-          echo "::group::user-db"
-          docker build -t sockshop-user-db:ci \
-            -f backend/user/docker/user-db/Dockerfile \
-            backend/user/docker/user-db
-          echo "::endgroup::"
-
   build-java:
     name: Build (java)
     runs-on: ubuntu-latest

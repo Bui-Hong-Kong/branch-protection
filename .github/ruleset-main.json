@@ -67,8 +67,7 @@
           { "context": "Lint (javascript)" },
           { "context": "Build (java)" },
           { "context": "Build (go)" },
-          { "context": "Build (javascript)" },
-          { "context": "Build (db)" }
+          { "context": "Build (javascript)" }
         ]
       }
     }
