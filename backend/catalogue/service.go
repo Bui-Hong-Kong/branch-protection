@@ -169,7 +169,7 @@ func (s *catalogueService) Health() []Health {
 
 	err := s.db.Ping()
 	if err != nil {
-		dbstatus = "err"
+		dbstatus = "unreachable"
 	}
 
 	app := Health{"catalogue", "OK", time.Now().String()}
