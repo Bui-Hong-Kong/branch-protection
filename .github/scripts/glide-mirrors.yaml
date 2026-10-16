@@ -1,0 +1,12 @@
+- original: https://gopkg.in/mgo.v2
+  repo: https://github.com/go-mgo/mgo.git
+  vcs: git
+- original: https://gopkg.in/tomb.v2
+  repo: https://github.com/go-tomb/tomb.git
+  vcs: git
+- original: https://gopkg.in/airbrake/gobrake.v2
+  repo: https://github.com/airbrake/gobrake.git
+  vcs: git
+- original: https://gopkg.in/gemnasium/logrus-airbrake-hook.v2
+  repo: https://github.com/gemnasium/logrus-airbrake-hook.git
+  vcs: git

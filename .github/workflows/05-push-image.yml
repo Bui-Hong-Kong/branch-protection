@@ -157,7 +157,7 @@ jobs:
           cp -a "$SRC_DIR" "$GOPATH_SRC"
 
           if [ "$SERVICE" = "user" ]; then
-            RESTORE="cd /go/src/${GO_ROOT} && go get -d ./..."
+            RESTORE="go get github.com/Masterminds/glide && cd /go/src/${GO_ROOT} && glide install"
           else
             RESTORE="go get github.com/FiloSottile/gvt && cd /go/src/${GO_ROOT} && gvt restore"
           fi
@@ -165,6 +165,7 @@ jobs:
           docker run --rm \
             -v "$GITHUB_WORKSPACE/.gopath:/go" \
             -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:/scripts/gopath-git-rewrites.sh:ro" \
+            -v "$GITHUB_WORKSPACE/.github/scripts/glide-mirrors.yaml:/root/.glide/mirrors.yaml:ro" \
             -e GO111MODULE=off \
             -e CGO_ENABLED=0 \
             -e GOPATH=/go \

@@ -102,11 +102,12 @@ jobs:
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
               -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/glide-mirrors.yaml:/root/.glide/mirrors.yaml:ro" \
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -c "bash ${REWRITES} && cd /go/src/${go_root} && go get -d ./... && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             echo "::endgroup::"
           }
           build_gvt catalogue \
