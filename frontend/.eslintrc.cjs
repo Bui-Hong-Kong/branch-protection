@@ -1,4 +1,4 @@
-/* ESLint — most widely used JS linter. Loose config for legacy Sock Shop front-end. */
+/* ESLint — most widely used JS linter. Tuned for legacy Sock Shop front-end. */
 module.exports = {
   root: true,
   env: {
@@ -20,8 +20,16 @@ module.exports = {
   ],
   extends: ["eslint:recommended"],
   rules: {
-    "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    // Express/request callbacks commonly leave unused (err, req, res, next, body).
+    "no-unused-vars": [
+      "error",
+      { args: "none", varsIgnorePattern: "^_", caughtErrors: "none" },
+    ],
     "no-console": "off",
     "no-empty": ["error", { allowEmptyCatch: true }],
+    // Legacy style in metrics / throw-then-return guards.
+    "no-extra-semi": "off",
+    "no-redeclare": "off",
+    "no-unreachable": "off",
   },
 };

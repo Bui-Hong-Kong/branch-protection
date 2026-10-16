@@ -1,9 +1,6 @@
-var request      = require("request")
-  , express      = require("express")
+var express      = require("express")
   , morgan       = require("morgan")
-  , path         = require("path")
   , bodyParser   = require("body-parser")
-  , async        = require("async")
   , cookieParser = require("cookie-parser")
   , session      = require("express-session")
   , config       = require("./config")
@@ -34,7 +31,7 @@ app.use(helpers.sessionMiddleware);
 app.use(morgan("dev", {}));
 
 var domain = "";
-process.argv.forEach(function (val, index, array) {
+process.argv.forEach(function (val) {
   var arg = val.split("=");
   if (arg.length > 1) {
     if (arg[0] == "--domain") {

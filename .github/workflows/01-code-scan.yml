@@ -26,14 +26,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+          cache-dependency-path: |
+            backend/carts/pom.xml
+            backend/orders/pom.xml
+            backend/shipping/pom.xml
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: java
           config-file: .github/codeql/codeql-config.yml
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      # Autobuild cannot find multi-module layout under backend/* — build explicitly.
+      - name: Build Java services
+        run: |
+          set -euo pipefail
+          for svc in carts orders shipping; do
+            echo "::group::Maven package ${svc}"
+            mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
+            echo "::endgroup::"
+          done
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -53,8 +70,52 @@ jobs:
           languages: go
           config-file: .github/codeql/codeql-config.yml
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Restore deps and build Go services
+        run: |
+          set -euo pipefail
+          build_gvt() {
+            local service="$1" go_pkg="$2" go_root="$3"
+            echo "::group::Go build ${service}"
+            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
+            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
+            mkdir -p "$(dirname "$GOPATH_SRC")"
+            rm -rf "$GOPATH_SRC"
+            cp -a "$SRC_DIR" "$GOPATH_SRC"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e CGO_ENABLED=0 \
+              -e GOPATH=/go \
+              golang:1.17 \
+              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+            echo "::endgroup::"
+          }
+          build_glide() {
+            local service="$1" go_pkg="$2" go_root="$3"
+            echo "::group::Go build ${service}"
+            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
+            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
+            mkdir -p "$(dirname "$GOPATH_SRC")"
+            rm -rf "$GOPATH_SRC"
+            cp -a "$SRC_DIR" "$GOPATH_SRC"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e CGO_ENABLED=0 \
+              -e GOPATH=/go \
+              golang:1.17 \
+              sh -c "go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+            echo "::endgroup::"
+          }
+          build_gvt catalogue \
+            github.com/microservices-demo/catalogue/cmd/cataloguesvc \
+            github.com/microservices-demo/catalogue
+          build_gvt payment \
+            github.com/microservices-demo/payment/cmd/paymentsvc \
+            github.com/microservices-demo/payment
+          build_glide user \
+            github.com/microservices-demo/user \
+            github.com/microservices-demo/user
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

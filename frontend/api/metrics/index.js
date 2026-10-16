@@ -22,8 +22,8 @@
     var route = path.toLowerCase();
     if (route !== '/metrics' && route !== '/metrics/') {
         var duration = s(start);
-        var method = method.toLowerCase();
-        metric.http.requests.duration.labels('front-end', method, route, statusCode).observe(duration);
+        var httpMethod = method.toLowerCase();
+        metric.http.requests.duration.labels('front-end', httpMethod, route, statusCode).observe(duration);
     }
   };
 

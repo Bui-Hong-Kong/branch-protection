@@ -1,8 +1,8 @@
 # Pre-merge quality gates with widely adopted language tooling.
 # Job names are stable (no matrix in the check name) for GitHub rulesets.
 #
-#   Java       → Checkstyle + SpotBugs (+ Maven package)
-#   Go         → golangci-lint (govet / ineffassign / typecheck)
+#   Java       → Checkstyle + SpotBugs (+ Maven package) on JDK 8
+#   Go         → gvt/glide restore, then golangci-lint + go build
 #   JavaScript → ESLint (frontend/)
 #
 # Merge queue does not re-run these jobs.
@@ -23,7 +23,6 @@ concurrency:
 
 env:
   JAVA_SERVICES: carts orders shipping
-  GO_SERVICES: catalogue payment user
 
 jobs:
   lint-java:
@@ -35,8 +34,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # JDK 11+: SpotBugs Maven plugin runtime; poms still target Java 8 bytecode.
-          java-version: "11"
+          # JDK 8 avoids hibernate-validator pulling javafx.base SNAPSHOT (JDK 11+).
+          java-version: "8"
           cache: maven
           cache-dependency-path: |
             backend/carts/pom.xml
@@ -51,17 +50,17 @@ jobs:
             echo "::group::Lint Java — ${svc}"
             cd "$GITHUB_WORKSPACE/backend/${svc}"
             mvn -B -DskipTests package
-            mvn -B com.puppycrawl.tools:checkstyle-maven-plugin:3.5.0:check \
+            mvn -B com.puppycrawl.tools:checkstyle-maven-plugin:3.3.1:check \
               -Dcheckstyle.config.location="$CHECKSTYLE_CFG" \
               -Dcheckstyle.consoleOutput=true \
               -Dcheckstyle.failsOnError=true \
               -Dcheckstyle.includes="**/*.java" \
               -Dcheckstyle.excludes="**/target/**"
-            mvn -B com.github.spotbugs:spotbugs-maven-plugin:4.8.6.6:check \
+            # SpotBugs 4.2.x runs on JDK 8; High threshold for legacy code.
+            mvn -B com.github.spotbugs:spotbugs-maven-plugin:4.2.3:check \
               -Dspotbugs.failOnError=true \
               -Dspotbugs.effort=Default \
               -Dspotbugs.threshold=High \
-              -Dspotbugs.excludeFilterFile= \
               -Dspotbugs.xmlOutput=false
             echo "::endgroup::"
           done
@@ -72,19 +71,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: golangci-lint (each Go service, GOPATH + vendor)
+      - name: Restore deps + golangci-lint
         run: |
           set -euo pipefail
-          # Image pins an older Go toolchain that still handles GOPATH/vendor well.
           LINT_IMAGE="golangci/golangci-lint:v1.51.2"
 
-          lint_one() {
+          restore_gvt() {
             local svc="$1" root="$2"
-            echo "::group::Lint Go — ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
             cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e GOPATH=/go \
+              golang:1.17 \
+              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
+          }
+
+          restore_glide() {
+            local svc="$1" root="$2"
+            dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
+            rm -rf "$dest"
+            mkdir -p "$(dirname "$dest")"
+            cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e GOPATH=/go \
+              golang:1.17 \
+              sh -c "go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+          }
+
+          lint_one() {
+            local svc="$1" root="$2"
+            echo "::group::Lint Go — ${svc}"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
               -v "$GITHUB_WORKSPACE/.golangci.yml:/golangci.yml:ro" \
@@ -97,8 +119,11 @@ jobs:
             echo "::endgroup::"
           }
 
+          restore_gvt catalogue github.com/microservices-demo/catalogue
           lint_one catalogue github.com/microservices-demo/catalogue
+          restore_gvt payment github.com/microservices-demo/payment
           lint_one payment github.com/microservices-demo/payment
+          restore_glide user github.com/microservices-demo/user
           lint_one user github.com/microservices-demo/user
 
   lint-javascript:
@@ -148,7 +173,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "11"
+          java-version: "8"
           cache: maven
           cache-dependency-path: |
             backend/carts/pom.xml
@@ -170,10 +195,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Go build (GOPATH + vendor)
+      - name: Go build (restore deps then compile)
         run: |
           set -euo pipefail
-          build_one() {
+          build_gvt() {
             local service="$1" go_pkg="$2" go_root="$3"
             echo "::group::Build Go — ${service}"
             SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
@@ -186,17 +211,35 @@ jobs:
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
-              golang:1.17-alpine \
-              go build -o "/go/src/${go_root}/app" "${go_pkg}"
+              golang:1.17 \
+              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
-          build_one catalogue \
+          build_glide() {
+            local service="$1" go_pkg="$2" go_root="$3"
+            echo "::group::Build Go — ${service}"
+            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
+            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
+            mkdir -p "$(dirname "$GOPATH_SRC")"
+            rm -rf "$GOPATH_SRC"
+            cp -a "$SRC_DIR" "$GOPATH_SRC"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e CGO_ENABLED=0 \
+              -e GOPATH=/go \
+              golang:1.17 \
+              sh -c "go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+            test -f "$GOPATH_SRC/app"
+            echo "::endgroup::"
+          }
+          build_gvt catalogue \
             github.com/microservices-demo/catalogue/cmd/cataloguesvc \
             github.com/microservices-demo/catalogue
-          build_one payment \
+          build_gvt payment \
             github.com/microservices-demo/payment/cmd/paymentsvc \
             github.com/microservices-demo/payment
-          build_one user \
+          build_glide user \
             github.com/microservices-demo/user \
             github.com/microservices-demo/user
