@@ -90,20 +90,21 @@ jobs:
             echo "::endgroup::"
           }
 
-          restore_glide() {
+          restore_user() {
             local svc="$1" root="$2"
-            echo "::group::Restore Go deps â€” ${svc}"
+            echo "::group::Restore Go deps — ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
             cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
+            # Glide hits gopkg.in (502); seed mirrors + go get instead.
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
               -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+              bash -c "bash ${REWRITES} && cd /go/src/${root} && go get -d ./..."
             echo "::endgroup::"
           }
 
@@ -126,7 +127,7 @@ jobs:
           lint_one catalogue github.com/microservices-demo/catalogue
           restore_gvt payment github.com/microservices-demo/payment
           lint_one payment github.com/microservices-demo/payment
-          restore_glide user github.com/microservices-demo/user
+          restore_user user github.com/microservices-demo/user
           lint_one user github.com/microservices-demo/user
 
   lint-javascript:
@@ -221,9 +222,9 @@ jobs:
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
-          build_glide() {
+          build_user() {
             local service="$1" go_pkg="$2" go_root="$3"
-            echo "::group::Build Go â€” ${service}"
+            echo "::group::Build Go — ${service}"
             SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
             GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
             mkdir -p "$(dirname "$GOPATH_SRC")"
@@ -236,7 +237,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -c "bash ${REWRITES} && cd /go/src/${go_root} && go get -d ./... && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
@@ -246,6 +247,6 @@ jobs:
           build_gvt payment \
             github.com/microservices-demo/payment/cmd/paymentsvc \
             github.com/microservices-demo/payment
-          build_glide user \
+          build_user user \
             github.com/microservices-demo/user \
             github.com/microservices-demo/user

@@ -157,7 +157,7 @@ jobs:
           cp -a "$SRC_DIR" "$GOPATH_SRC"
 
           if [ "$SERVICE" = "user" ]; then
-            RESTORE="go get github.com/Masterminds/glide && cd /go/src/${GO_ROOT} && glide install"
+            RESTORE="cd /go/src/${GO_ROOT} && go get -d ./..."
           else
             RESTORE="go get github.com/FiloSottile/gvt && cd /go/src/${GO_ROOT} && gvt restore"
           fi
