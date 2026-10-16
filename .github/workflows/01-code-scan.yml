@@ -26,14 +26,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+          cache-dependency-path: |
+            backend/carts/pom.xml
+            backend/orders/pom.xml
+            backend/shipping/pom.xml
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: java
           config-file: .github/codeql/codeql-config.yml
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Build Java services
+        run: |
+          set -euo pipefail
+          for svc in carts orders shipping; do
+            echo "::group::Maven package ${svc}"
+            mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
+            echo "::endgroup::"
+          done
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -47,14 +63,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: |
+            backend/catalogue/go.sum
+            backend/payment/go.sum
+            backend/user/go.sum
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: go
           config-file: .github/codeql/codeql-config.yml
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Build Go services
+        run: |
+          set -euo pipefail
+          echo "::group::catalogue"
+          (cd backend/catalogue && go build -o app ./cmd/cataloguesvc)
+          echo "::endgroup::"
+          echo "::group::payment"
+          (cd backend/payment && go build -o app ./cmd/paymentsvc)
+          echo "::endgroup::"
+          echo "::group::user"
+          (cd backend/user && go build -o app .)
+          echo "::endgroup::"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
+	"context"
 )
 
 func TestComponent(t *testing.T) {

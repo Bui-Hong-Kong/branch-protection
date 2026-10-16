@@ -24,6 +24,7 @@ lerna-debug.log*
 backend/**/app
 backend/**/bin/
 .gopath/
+.tools/
 
 # OS
 .DS_Store

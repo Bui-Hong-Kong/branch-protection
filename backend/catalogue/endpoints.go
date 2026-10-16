@@ -8,7 +8,7 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/tracing/opentracing"
 	stdopentracing "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
+	"context"
 )
 
 // Endpoints collects the endpoints that comprise the Service.
