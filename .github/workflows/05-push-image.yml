@@ -15,12 +15,10 @@ on:
         options:
           - carts
           - catalogue
-          - catalogue-db
           - orders
           - payment
           - shipping
           - user
-          - user-db
           - frontend
       image_tag:
         description: Image tag (empty = latest <service>-v* Git tag, else short SHA)
@@ -78,16 +76,6 @@ jobs:
               echo "go_root=github.com/microservices-demo/user" >> "$GITHUB_OUTPUT"
               echo "context=backend/user" >> "$GITHUB_OUTPUT"
               echo "dockerfile=backend/user/Dockerfile.ci" >> "$GITHUB_OUTPUT"
-              ;;
-            catalogue-db)
-              echo "stack=docker" >> "$GITHUB_OUTPUT"
-              echo "context=backend/catalogue/docker/catalogue-db" >> "$GITHUB_OUTPUT"
-              echo "dockerfile=backend/catalogue/docker/catalogue-db/Dockerfile" >> "$GITHUB_OUTPUT"
-              ;;
-            user-db)
-              echo "stack=docker" >> "$GITHUB_OUTPUT"
-              echo "context=backend/user/docker/user-db" >> "$GITHUB_OUTPUT"
-              echo "dockerfile=backend/user/docker/user-db/Dockerfile" >> "$GITHUB_OUTPUT"
               ;;
             frontend)
               echo "stack=node" >> "$GITHUB_OUTPUT"

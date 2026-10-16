@@ -14,12 +14,10 @@ on:
         options:
           - carts
           - catalogue
-          - catalogue-db
           - orders
           - payment
           - shipping
           - user
-          - user-db
           - frontend
       image_tag:
         description: Tag to copy (empty = latest <service>-v* release → stripped to vX.Y.Z)
