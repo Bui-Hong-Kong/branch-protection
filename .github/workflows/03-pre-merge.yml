@@ -1,7 +1,11 @@
-# CI on pull requests only (lint, build, test, dependency scan).
-# Merge queue does not re-run these jobs — it only serializes merges into main.
-# Dependency scan uses OSV (lockfile).
-# Secret scanning relies on GitHub push protection / secret scanning (Gitleaks removed).
+# Pre-merge quality gates with widely adopted language tooling.
+# Job names are stable (no matrix in the check name) for GitHub rulesets.
+#
+#   Java       → Checkstyle + SpotBugs (+ Maven package)
+#   Go         → golangci-lint (govet / ineffassign / typecheck)
+#   JavaScript → ESLint (frontend/)
+#
+# Merge queue does not re-run these jobs.
 
 name: 3. Pre-merge checks
 
@@ -11,79 +15,208 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: pre-merge-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: web
+env:
+  JAVA_SERVICES: carts orders shipping
+  GO_SERVICES: catalogue payment user
 
 jobs:
-  lint:
-    name: Lint
+  lint-java:
+    name: Lint (java)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # JDK 11+: SpotBugs Maven plugin runtime; poms still target Java 8 bytecode.
+          java-version: "11"
+          cache: maven
+          cache-dependency-path: |
+            backend/carts/pom.xml
+            backend/orders/pom.xml
+            backend/shipping/pom.xml
+
+      - name: Checkstyle + SpotBugs (each Java service)
+        run: |
+          set -euo pipefail
+          CHECKSTYLE_CFG="$GITHUB_WORKSPACE/.github/linters/checkstyle.xml"
+          for svc in $JAVA_SERVICES; do
+            echo "::group::Lint Java — ${svc}"
+            cd "$GITHUB_WORKSPACE/backend/${svc}"
+            mvn -B -DskipTests package
+            mvn -B com.puppycrawl.tools:checkstyle-maven-plugin:3.5.0:check \
+              -Dcheckstyle.config.location="$CHECKSTYLE_CFG" \
+              -Dcheckstyle.consoleOutput=true \
+              -Dcheckstyle.failsOnError=true \
+              -Dcheckstyle.includes="**/*.java" \
+              -Dcheckstyle.excludes="**/target/**"
+            mvn -B com.github.spotbugs:spotbugs-maven-plugin:4.8.6.6:check \
+              -Dspotbugs.failOnError=true \
+              -Dspotbugs.effort=Default \
+              -Dspotbugs.threshold=High \
+              -Dspotbugs.excludeFilterFile= \
+              -Dspotbugs.xmlOutput=false
+            echo "::endgroup::"
+          done
+
+  lint-go:
+    name: Lint (go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: golangci-lint (each Go service, GOPATH + vendor)
+        run: |
+          set -euo pipefail
+          # Image pins an older Go toolchain that still handles GOPATH/vendor well.
+          LINT_IMAGE="golangci/golangci-lint:v1.51.2"
+
+          lint_one() {
+            local svc="$1" root="$2"
+            echo "::group::Lint Go — ${svc}"
+            dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
+            rm -rf "$dest"
+            mkdir -p "$(dirname "$dest")"
+            cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.golangci.yml:/golangci.yml:ro" \
+              -e GO111MODULE=off \
+              -e CGO_ENABLED=0 \
+              -e GOPATH=/go \
+              -w "/go/src/${root}" \
+              "$LINT_IMAGE" \
+              golangci-lint run --config /golangci.yml ./...
+            echo "::endgroup::"
+          }
+
+          lint_one catalogue github.com/microservices-demo/catalogue
+          lint_one payment github.com/microservices-demo/payment
+          lint_one user github.com/microservices-demo/user
+
+  lint-javascript:
+    name: Lint (javascript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
 
-  build:
-    name: Build
+      - name: ESLint (frontend)
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          npm install --no-save eslint@8.57.1
+          npx eslint . --max-warnings 0
+
+  build-javascript:
+    name: Build (javascript)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run build
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
 
-  audit:
-    name: npm audit
+      - name: Yarn install (frontend)
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: Docker build frontend (verify Dockerfile.ci)
+        run: |
+          set -euo pipefail
+          docker build -f frontend/Dockerfile.ci -t sockshop-frontend:ci frontend
+
+  build-db:
+    name: Build (db)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm audit --audit-level=high
 
-  test:
-    name: Test
+      - name: Docker build catalogue-db + user-db
+        run: |
+          set -euo pipefail
+          echo "::group::catalogue-db"
+          docker build -t sockshop-catalogue-db:ci \
+            -f backend/catalogue/docker/catalogue-db/Dockerfile \
+            backend/catalogue/docker/catalogue-db
+          echo "::endgroup::"
+          echo "::group::user-db"
+          docker build -t sockshop-user-db:ci \
+            -f backend/user/docker/user-db/Dockerfile \
+            backend/user/docker/user-db
+          echo "::endgroup::"
+
+  build-java:
+    name: Build (java)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm test
 
-  dependency-scan:
-    name: Dependency scan
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: maven
+          cache-dependency-path: |
+            backend/carts/pom.xml
+            backend/orders/pom.xml
+            backend/shipping/pom.xml
+
+      - name: Maven package (all Java services)
+        run: |
+          set -euo pipefail
+          for svc in $JAVA_SERVICES; do
+            echo "::group::Build Java — ${svc}"
+            mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
+            echo "::endgroup::"
+          done
+
+  build-go:
+    name: Build (go)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     steps:
       - uses: actions/checkout@v4
-      # dependency-review-action is PR-only; OSV scans the lockfile.
-      - name: Run OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
-        with:
-          scan-args: |-
-            --lockfile=web/package-lock.json
+
+      - name: Go build (GOPATH + vendor)
+        run: |
+          set -euo pipefail
+          build_one() {
+            local service="$1" go_pkg="$2" go_root="$3"
+            echo "::group::Build Go — ${service}"
+            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
+            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
+            mkdir -p "$(dirname "$GOPATH_SRC")"
+            rm -rf "$GOPATH_SRC"
+            cp -a "$SRC_DIR" "$GOPATH_SRC"
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -e GO111MODULE=off \
+              -e CGO_ENABLED=0 \
+              -e GOPATH=/go \
+              golang:1.17-alpine \
+              go build -o "/go/src/${go_root}/app" "${go_pkg}"
+            test -f "$GOPATH_SRC/app"
+            echo "::endgroup::"
+          }
+          build_one catalogue \
+            github.com/microservices-demo/catalogue/cmd/cataloguesvc \
+            github.com/microservices-demo/catalogue
+          build_one payment \
+            github.com/microservices-demo/payment/cmd/paymentsvc \
+            github.com/microservices-demo/payment
+          build_one user \
+            github.com/microservices-demo/user \
+            github.com/microservices-demo/user

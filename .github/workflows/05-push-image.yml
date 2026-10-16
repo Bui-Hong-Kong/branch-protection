@@ -1,15 +1,29 @@
-# Manual: build frontend image and push to ECR env-1 only.
-# Run from Actions → 5. Push image → Run workflow.
-# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote to env-2 via 6. Copy image.
-# Does not run on PR/merge.
+# Manual: build one Sock Shop service image and push to ECR env-1.
+# Compile steps live in this workflow; runtime Dockerfile.ci (or service Dockerfile for DBs).
+# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote via 6. Copy image.
+# ECR repo name: sockshop-<service>-env-1
 
 name: 5. Push image
 
 on:
   workflow_dispatch:
     inputs:
+      service:
+        description: Service to build and push
+        type: choice
+        required: true
+        options:
+          - carts
+          - catalogue
+          - catalogue-db
+          - orders
+          - payment
+          - shipping
+          - user
+          - user-db
+          - frontend
       image_tag:
-        description: Image tag (empty = latest GitHub Release tag, else short git SHA)
+        description: Image tag (empty = latest <service>-v* Git tag, else short SHA)
         type: string
         required: false
         default: ""
@@ -19,20 +33,73 @@ permissions:
   id-token: write
 
 concurrency:
-  group: push-image-env-1
+  group: push-image-${{ inputs.service }}-env-1
   cancel-in-progress: false
 
 env:
   AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY: branch-protection-env-1
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   push:
-    name: Build and push env-1
+    name: Build and push ${{ inputs.service }} (env-1)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve service build params
+        id: svc
+        run: |
+          set -euo pipefail
+          SERVICE="${{ inputs.service }}"
+          case "$SERVICE" in
+            carts|orders|shipping)
+              echo "stack=java" >> "$GITHUB_OUTPUT"
+              echo "context=backend/${SERVICE}" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/${SERVICE}/Dockerfile.ci" >> "$GITHUB_OUTPUT"
+              ;;
+            catalogue)
+              echo "stack=go" >> "$GITHUB_OUTPUT"
+              echo "go_pkg=github.com/microservices-demo/catalogue/cmd/cataloguesvc" >> "$GITHUB_OUTPUT"
+              echo "go_root=github.com/microservices-demo/catalogue" >> "$GITHUB_OUTPUT"
+              echo "context=backend/catalogue" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/catalogue/Dockerfile.ci" >> "$GITHUB_OUTPUT"
+              ;;
+            payment)
+              echo "stack=go" >> "$GITHUB_OUTPUT"
+              echo "go_pkg=github.com/microservices-demo/payment/cmd/paymentsvc" >> "$GITHUB_OUTPUT"
+              echo "go_root=github.com/microservices-demo/payment" >> "$GITHUB_OUTPUT"
+              echo "context=backend/payment" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/payment/Dockerfile.ci" >> "$GITHUB_OUTPUT"
+              ;;
+            user)
+              echo "stack=go" >> "$GITHUB_OUTPUT"
+              echo "go_pkg=github.com/microservices-demo/user" >> "$GITHUB_OUTPUT"
+              echo "go_root=github.com/microservices-demo/user" >> "$GITHUB_OUTPUT"
+              echo "context=backend/user" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/user/Dockerfile.ci" >> "$GITHUB_OUTPUT"
+              ;;
+            catalogue-db)
+              echo "stack=docker" >> "$GITHUB_OUTPUT"
+              echo "context=backend/catalogue/docker/catalogue-db" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/catalogue/docker/catalogue-db/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            user-db)
+              echo "stack=docker" >> "$GITHUB_OUTPUT"
+              echo "context=backend/user/docker/user-db" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=backend/user/docker/user-db/Dockerfile" >> "$GITHUB_OUTPUT"
+              ;;
+            frontend)
+              echo "stack=node" >> "$GITHUB_OUTPUT"
+              echo "context=frontend" >> "$GITHUB_OUTPUT"
+              echo "dockerfile=frontend/Dockerfile.ci" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unknown service $SERVICE"
+              exit 1
+              ;;
+          esac
+          echo "ecr_repo=sockshop-${SERVICE}-env-1" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -46,23 +113,71 @@ jobs:
 
       - name: Set image name and tag
         id: meta
+        env:
+          SERVICE: ${{ inputs.service }}
+          ECR_REPO: ${{ steps.svc.outputs.ecr_repo }}
         run: |
           set -euo pipefail
           REGISTRY="${{ steps.ecr.outputs.registry }}"
-          REPO="${{ env.ECR_REPOSITORY }}"
           TAG="${{ inputs.image_tag }}"
           if [ -z "$TAG" ]; then
-            TAG="$(gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name 2>/dev/null || true)"
+            TAG="$(gh api "repos/${{ github.repository }}/releases" --jq \
+              "[.[] | select(.tag_name | startswith(\"${SERVICE}-v\")) | .tag_name][0]" 2>/dev/null || true)"
           fi
-          if [ -z "$TAG" ]; then
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
             TAG="$(git rev-parse --short HEAD)"
-            echo "No release tag found; using short SHA ${TAG}"
+            echo "No ${SERVICE}-v* release tag found; using short SHA ${TAG}"
           else
             echo "Using tag ${TAG}"
           fi
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image=${REGISTRY}/${REPO}:${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image_latest=${REGISTRY}/${REPO}:latest" >> "$GITHUB_OUTPUT"
+          IMAGE_TAG="$TAG"
+          prefix="${SERVICE}-"
+          if [[ "$TAG" == "$prefix"* ]]; then
+            IMAGE_TAG="${TAG#"$prefix"}"
+          fi
+          echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "git_tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY}/${ECR_REPO}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "image_latest=${REGISTRY}/${ECR_REPO}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        if: steps.svc.outputs.stack == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: maven
+          cache-dependency-path: backend/${{ inputs.service }}/pom.xml
+
+      - name: Maven package
+        if: steps.svc.outputs.stack == 'java'
+        working-directory: backend/${{ inputs.service }}
+        run: mvn -B -DskipTests package
+
+      - name: Build Go binary (GOPATH + vendor)
+        if: steps.svc.outputs.stack == 'go'
+        env:
+          SERVICE: ${{ inputs.service }}
+          GO_PKG: ${{ steps.svc.outputs.go_pkg }}
+          GO_ROOT: ${{ steps.svc.outputs.go_root }}
+        run: |
+          set -euo pipefail
+          SRC_DIR="$GITHUB_WORKSPACE/backend/${SERVICE}"
+          GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${GO_ROOT}"
+          mkdir -p "$(dirname "$GOPATH_SRC")"
+          rm -rf "$GOPATH_SRC"
+          cp -a "$SRC_DIR" "$GOPATH_SRC"
+
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/.gopath:/go" \
+            -e GO111MODULE=off \
+            -e CGO_ENABLED=0 \
+            -e GOPATH=/go \
+            golang:1.17-alpine \
+            go build -o "/go/src/${GO_ROOT}/app" "${GO_PKG}"
+
+          cp "$GOPATH_SRC/app" "$SRC_DIR/app"
+          ls -la "$SRC_DIR/app"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -70,8 +185,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: web
-          file: web/Dockerfile
+          context: ${{ steps.svc.outputs.context }}
+          file: ${{ steps.svc.outputs.dockerfile }}
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
@@ -82,7 +197,8 @@ jobs:
       - name: Summary
         run: |
           echo "### Pushed image (env-1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`${{ steps.meta.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`${{ steps.meta.outputs.image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Promote to env-2 with **6. Copy image** (same tag: \`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Promote with **6. Copy image** (service=\`${{ inputs.service }}\`, tag=\`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"

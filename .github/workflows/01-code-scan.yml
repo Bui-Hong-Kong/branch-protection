@@ -1,5 +1,4 @@
-# CodeQL on pull requests, and on main so the default-branch baseline
-# stays javascript-only (avoids Neutral "configuration not found" for old /language:go).
+# CodeQL for Java, Go, and JavaScript (Sock Shop backend + frontend).
 
 name: 1. Code scan
 
@@ -20,6 +19,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  java:
+    name: Analyze (java)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          config-file: .github/codeql/codeql-config.yml
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
+
+  go:
+    name: Analyze (go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+          config-file: .github/codeql/codeql-config.yml
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:go"
+
   javascript:
     name: Analyze (javascript)
     runs-on: ubuntu-latest
@@ -31,6 +72,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
+          config-file: .github/codeql/codeql-config.yml
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3

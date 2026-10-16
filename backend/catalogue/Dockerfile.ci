@@ -1,0 +1,13 @@
+FROM alpine:3.20
+
+RUN adduser -D -H -u 10001 appuser
+
+WORKDIR /
+COPY app /app
+COPY images /images
+
+RUN chmod +x /app && chown -R appuser:appuser /app /images
+
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["/app", "-port=8080"]

@@ -6,9 +6,9 @@ Merge xảy ra khi đủ ba điều kiện:
 
 - CodeQL đã có kết quả cho commit của PR và cho `main`.
 - Không có security alert mức high hoặc critical, và không có alert mức Error.
-- Nhánh đã chứa mọi commit mới của `main`, và check `Analyze (javascript)` pass.
+- Nhánh đã cập nhật mọi commit mới của `main`, và các check CodeQL / pre-merge liên quan đã pass.
 
-App nằm trong `web/` (Vite + React).
+App Sock Shop: `backend/<service>/` (carts, catalogue, orders, payment, shipping, user) và `frontend/`. Mỗi service có semver riêng (`carts-vX.Y.Z`, …).
 
 Ruleset không yêu cầu approving review, nên một người vẫn merge được sau khi các điều kiện trên thỏa.
 
@@ -32,18 +32,18 @@ Sau khi hai gói đã bật trên repo, làm tiếp các bước public ở dư�
 2. Push protection trên tài khoản cá nhân chỉ chặn secret khi push lên repo public. Repo private dùng push protection của chính repo.
 3. CodeQL default setup dùng phút GitHub Actions của gói private. Actions của repo phải đang bật.
 
-Ruleset vẫn tắt cho đến khi phân tích CodeQL trên `main` đã xong và PR trong cùng repo hiện check tên thật, ví dụ `Analyze (javascript)`. File `.github/ruleset-main.json` phải dùng đúng tên đó ở trường `context`.
+Ruleset vẫn tắt cho đến khi phân tích CodeQL trên `main` đã xong và PR trong cùng repo hiện check tên thật, ví dụ `Analyze (java)` / `Analyze (go)`. File `.github/ruleset-main.json` phải dùng đúng tên đó ở trường `context` nếu bắt buộc status check.
 
 ## Bật trên GitHub, theo thứ tự
 
 Ruleset phải tắt trong suốt các bước 1–6. Bật sớm thì required status check chưa tồn tại và không ai merge được.
 
 1. Push repo này lên `main`.
-2. Có code JavaScript trong `web/` trên `main` (Vite + React). Default setup / workflow CodeQL cần ngôn ngữ hỗ trợ trên nhánh mặc định; repo chỉ Markdown thì scan không chạy.
+2. Có code Java/Go trong `backend/` trên `main`. Workflow `1. Code scan` chạy CodeQL cho java và go.
 3. Bật GitHub Actions cho repo nếu tab Actions đang tắt.
-4. **Settings → Advanced Security** (mục Security and quality ở sidebar). Trong **Code Security**, cạnh **CodeQL analysis**, chọn **Set up → Default → Enable CodeQL**.
+4. Dùng workflow CodeQL trong repo (hoặc Default setup nếu muốn). Tắt default setup nếu trùng với workflow tự viết.
 5. Đợi lần phân tích CodeQL trên `main` chạy xong.
-6. Tạo nhánh trong **cùng repo** (không dùng fork), mở PR vào `main`. Trên PR, đọc đúng tên check. Trên lab này check phân tích là `Analyze (javascript)`. Check `Code scanning results / CodeQL` là kết quả alert, không dùng làm required status check.
+6. Tạo nhánh trong **cùng repo** (không dùng fork), mở PR vào `main`. Trên PR, đọc đúng tên check (`Analyze (java)`, `Analyze (go)`, `Build (<service>)`). Check `Code scanning results / CodeQL` là kết quả alert, không dùng làm required status check.
 7. **Settings → Rules → Rulesets → New branch ruleset**, target `main`, hoặc tạo ruleset từ `.github/ruleset-main.json`. Trường `context` phải trùng tên check phân tích ở bước 6. Sai tên thì mọi PR đứng ở "Expected — waiting for status to be reported".
 
 CodeQL default setup không chạy trên pull request từ fork. Check phân tích sẽ không xuất hiện và ruleset giữ PR đó mãi.
@@ -56,7 +56,7 @@ CodeQL default setup không chạy trên pull request từ fork. Check phân tí
 | Block force pushes | Không force-push lên `main` |
 | Require a pull request | Mọi thay đổi vào `main` đi qua PR. Push thẳng bị từ chối, kể cả admin, vì `bypass_actors` để trống |
 | Require code scanning results, tool CodeQL | Chặn merge khi security alert là high hoặc critical, khi alert có mức Error, khi scan chưa xong, hoặc khi `main` và commit của PR chưa có kết quả CodeQL. Alert security medium/low, warning, và note không chặn |
-| Required status check `Analyze (javascript)` | Phân tích CodeQL (JS trong `web/`) phải kết thúc với trạng thái pass |
+| Required status checks | `Analyze (java)`, `Analyze (go)`, `Lint (java)` (Checkstyle+SpotBugs), `Lint (go)` (golangci-lint), `Lint (javascript)` (ESLint), `Build (java)`, `Build (go)` — xem `.github/ruleset-main.json` |
 | Require branches to be up to date | Nhánh còn thiếu commit của `main` thì nút merge khóa. Trên PR bấm **Update branch**. CodeQL chạy lại trên commit đã gồm latest `main` |
 
 Hai rule CodeQL làm hai việc khác nhau. Rule code scanning nhìn **mức alert**. Required status check nhìn **lần chạy đã pass chưa**, và là điều kiện để GitHub khóa nhánh cũ: tùy chọn up to date chỉ có hiệu lực khi có ít nhất một required status check. Check phân tích có thể pass trong khi rule code scanning vẫn chặn vì còn alert vượt ngưỡng.
@@ -98,4 +98,10 @@ git push
 1. Ruleset đang active, `git push origin main` → GitHub từ chối.
 2. Commit một AWS access key id rồi push → push protection từ chối push.
 3. PR có security alert high hoặc critical → rule code scanning chặn merge, kể cả khi check phân tích vẫn pass.
-4. Có commit mới trên `main` mà nhánh chưa update → nút merge khóa đến khi **Update branch** xong và check `Analyze (javascript)` pass trên commit mới.
+4. Có commit mới trên `main` mà nhánh chưa update → nút merge khóa đến khi **Update branch** xong và required checks pass trên commit mới.
+
+## Release & images (backend)
+
+- Conventional Commits trên `main` → workflow **4. Release** tạo tag `<service>-vX.Y.Z` (chỉ khi có commit đụng `backend/<service>/`).
+- **5. Push image**: chọn `service`, build trong workflow, push ECR `sockshop-<service>-env-1`.
+- **6. Copy image**: copy sang `sockshop-<service>-env-2` (cần tạo sẵn các ECR repo tương ứng trên AWS).

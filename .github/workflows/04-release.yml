@@ -1,6 +1,7 @@
-# Create semver Git tags + GitHub Releases from Conventional Commits on main.
-# Does not commit back to main (avoids ruleset friction). Does not run on PRs.
-# After a release, run 5. Push image / 6. Copy image with tag vX.Y.Z.
+# Per-service semver Git tags + GitHub Releases from Conventional Commits on main.
+# Tag format: <service>-vX.Y.Z (e.g. carts-v1.2.3, frontend-v1.0.0).
+# Path roots defined in release/services.mjs.
+# Does not commit back to main. Does not build/push images.
 
 name: 4. Release
 
@@ -8,6 +9,23 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      service:
+        description: Release only this service (empty = all)
+        type: choice
+        required: false
+        default: all
+        options:
+          - all
+          - carts
+          - catalogue
+          - catalogue-db
+          - orders
+          - payment
+          - shipping
+          - user
+          - user-db
+          - frontend
 
 permissions:
   contents: write
@@ -19,9 +37,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Semantic release
+  matrix:
+    name: Services to release
     runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set.outputs.services }}
+    steps:
+      - id: set
+        run: |
+          set -euo pipefail
+          ALL='["carts","catalogue","catalogue-db","orders","payment","shipping","user","user-db","frontend"]'
+          INPUT="${{ github.event.inputs.service || 'all' }}"
+          if [ "$INPUT" = "all" ] || [ -z "$INPUT" ]; then
+            echo "services=$ALL" >> "$GITHUB_OUTPUT"
+          else
+            echo "services=[\"$INPUT\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Release (${{ matrix.service }})
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.matrix.outputs.services) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +76,8 @@ jobs:
       - name: Install release tooling
         run: npm ci
 
-      - name: Run semantic-release
+      - name: Semantic-release (${{ matrix.service }})
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVICE: ${{ matrix.service }}
         run: npm run release

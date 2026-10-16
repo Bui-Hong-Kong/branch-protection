@@ -1,0 +1,16 @@
+FROM alpine:3.20
+
+RUN adduser -D -H -u 10001 appuser
+
+ENV HATEAOS=user \
+    USER_DATABASE=mongodb \
+    MONGO_HOST=user-db
+
+WORKDIR /
+COPY app /user
+
+RUN chmod +x /user && chown appuser:appuser /user
+
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["/user", "-port=8080"]

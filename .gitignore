@@ -1,8 +1,5 @@
-# Dependencies / frontend build
+# Dependencies / release tooling
 node_modules/
-web/node_modules/
-web/dist/
-web/dist-ssr/
 
 # Env / secrets — do not commit real secrets
 .env
@@ -18,6 +15,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Java / Maven
+**/target/
+**/.mvn/wrapper/maven-*.jar
+
+# Go build artifacts
+backend/**/app
+backend/**/bin/
+.gopath/
 
 # OS
 .DS_Store

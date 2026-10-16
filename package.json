@@ -1,9 +1,9 @@
 {
   "name": "branch-protection",
   "private": true,
-  "description": "Root tooling for releases (app code lives in web/)",
+  "description": "Root tooling for per-service semantic-release (Sock Shop backend)",
   "scripts": {
-    "release": "semantic-release"
+    "release": "semantic-release -e ./release/service.config.mjs"
   },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "^13.0.1",

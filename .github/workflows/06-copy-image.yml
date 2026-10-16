@@ -1,14 +1,28 @@
-# Manual: copy image env-1 → env-2 with crane (no rebuild).
-# Run from Actions → 6. Copy image → Run workflow.
+# Manual: copy one service image env-1 → env-2 with crane (no rebuild).
 # Uses repo variable AWS_ROLE_ARN_COPY (OIDC). Does not run on PR/merge.
+# ECR: sockshop-<service>-env-1 → sockshop-<service>-env-2
 
 name: 6. Copy image
 
 on:
   workflow_dispatch:
     inputs:
+      service:
+        description: Service image to copy
+        type: choice
+        required: true
+        options:
+          - carts
+          - catalogue
+          - catalogue-db
+          - orders
+          - payment
+          - shipping
+          - user
+          - user-db
+          - frontend
       image_tag:
-        description: Tag to copy from env-1 (empty = latest GitHub Release tag, else short git SHA)
+        description: Tag to copy (empty = latest <service>-v* release → stripped to vX.Y.Z)
         type: string
         required: false
         default: ""
@@ -23,18 +37,16 @@ permissions:
   id-token: write
 
 concurrency:
-  group: copy-image-env-2
+  group: copy-image-${{ inputs.service }}-env-2
   cancel-in-progress: false
 
 env:
   AWS_REGION: ap-southeast-1
-  SRC_REPO: branch-protection-env-1
-  DEST_REPO: branch-protection-env-2
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   copy:
-    name: Crane copy to env-2
+    name: Crane copy ${{ inputs.service }} → env-2
     runs-on: ubuntu-latest
     environment: env-2
     steps:
@@ -55,18 +67,26 @@ jobs:
 
       - name: Resolve tag and refs
         id: meta
+        env:
+          SERVICE: ${{ inputs.service }}
         run: |
           set -euo pipefail
           REGISTRY="${{ steps.ecr.outputs.registry }}"
+          SRC_REPO="sockshop-${SERVICE}-env-1"
+          DEST_REPO="sockshop-${SERVICE}-env-2"
           TAG="${{ inputs.image_tag }}"
           if [ -z "$TAG" ]; then
-            TAG="$(gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name 2>/dev/null || true)"
+            REL="$(gh api "repos/${{ github.repository }}/releases" --jq \
+              "[.[] | select(.tag_name | startswith(\"${SERVICE}-v\")) | .tag_name][0]" 2>/dev/null || true)"
+            if [ -n "$REL" ] && [ "$REL" != "null" ]; then
+              prefix="${SERVICE}-"
+              TAG="${REL#"$prefix"}"
+              echo "Resolved from release ${REL} → tag ${TAG}"
+            fi
           fi
           if [ -z "$TAG" ]; then
             TAG="$(git rev-parse --short HEAD)"
-            echo "No release tag found; using short SHA ${TAG}"
-          else
-            echo "Using tag ${TAG}"
+            echo "No ${SERVICE}-v* release tag found; using short SHA ${TAG}"
           fi
           SRC="${REGISTRY}/${SRC_REPO}:${TAG}"
           DEST="${REGISTRY}/${DEST_REPO}:${TAG}"
@@ -88,6 +108,7 @@ jobs:
       - name: Summary
         run: |
           echo "### Copied image (no rebuild)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Source: \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Dest: \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ inputs.also_latest }}" = "true" ]; then

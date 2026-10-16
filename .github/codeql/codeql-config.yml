@@ -1,0 +1,10 @@
+name: sockshop
+paths:
+  - backend
+  - frontend
+paths-ignore:
+  - backend/**/vendor/**
+  - backend/**/test/**
+  - frontend/public/js/**
+  - frontend/public/css/**
+  - frontend/test/**

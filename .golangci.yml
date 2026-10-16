@@ -1,0 +1,19 @@
+# golangci-lint — de-facto standard Go meta-linter.
+# Conservative enable-list so legacy GOPATH/vendor Sock Shop services can pass.
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - ineffassign
+    - typecheck
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - vendor
