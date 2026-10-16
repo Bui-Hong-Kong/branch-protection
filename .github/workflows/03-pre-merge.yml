@@ -86,7 +86,7 @@ jobs:
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
+              bash -lc "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
             echo "::endgroup::"
           }
 
@@ -103,7 +103,7 @@ jobs:
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+              bash -lc "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
             echo "::endgroup::"
           }
 
@@ -217,7 +217,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
@@ -236,7 +236,7 @@ jobs:
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
