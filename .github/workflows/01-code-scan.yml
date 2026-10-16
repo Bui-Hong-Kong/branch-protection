@@ -63,62 +63,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: |
+            backend/catalogue/go.sum
+            backend/payment/go.sum
+            backend/user/go.sum
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: go
           config-file: .github/codeql/codeql-config.yml
 
-      - name: Restore deps and build Go services
+      - name: Build Go services
         run: |
           set -euo pipefail
-          REWRITES="/scripts/gopath-git-rewrites.sh"
-          build_gvt() {
-            local service="$1" go_pkg="$2" go_root="$3"
-            echo "::group::Go build ${service}"
-            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
-            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
-            mkdir -p "$(dirname "$GOPATH_SRC")"
-            rm -rf "$GOPATH_SRC"
-            cp -a "$SRC_DIR" "$GOPATH_SRC"
-            docker run --rm \
-              -v "$GITHUB_WORKSPACE/.gopath:/go" \
-              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
-              -e GO111MODULE=off \
-              -e CGO_ENABLED=0 \
-              -e GOPATH=/go \
-              golang:1.17 \
-              bash -c "bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
-            echo "::endgroup::"
-          }
-          build_user() {
-            local service="$1" go_pkg="$2" go_root="$3"
-            echo "::group::Go build ${service}"
-            SRC_DIR="$GITHUB_WORKSPACE/backend/${service}"
-            GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${go_root}"
-            mkdir -p "$(dirname "$GOPATH_SRC")"
-            rm -rf "$GOPATH_SRC"
-            cp -a "$SRC_DIR" "$GOPATH_SRC"
-            docker run --rm \
-              -v "$GITHUB_WORKSPACE/.gopath:/go" \
-              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
-              -v "$GITHUB_WORKSPACE/.github/scripts/glide-mirrors.yaml:/root/.glide/mirrors.yaml:ro" \
-              -e GO111MODULE=off \
-              -e CGO_ENABLED=0 \
-              -e GOPATH=/go \
-              golang:1.17 \
-              bash -c "bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
-            echo "::endgroup::"
-          }
-          build_gvt catalogue \
-            github.com/microservices-demo/catalogue/cmd/cataloguesvc \
-            github.com/microservices-demo/catalogue
-          build_gvt payment \
-            github.com/microservices-demo/payment/cmd/paymentsvc \
-            github.com/microservices-demo/payment
-          build_user user \
-            github.com/microservices-demo/user \
-            github.com/microservices-demo/user
+          echo "::group::catalogue"
+          (cd backend/catalogue && go build -o app ./cmd/cataloguesvc)
+          echo "::endgroup::"
+          echo "::group::payment"
+          (cd backend/payment && go build -o app ./cmd/paymentsvc)
+          echo "::endgroup::"
+          echo "::group::user"
+          (cd backend/user && go build -o app .)
+          echo "::endgroup::"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

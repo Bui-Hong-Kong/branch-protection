@@ -142,37 +142,26 @@ jobs:
         working-directory: backend/${{ inputs.service }}
         run: mvn -B -DskipTests package
 
-      - name: Build Go binary (restore deps then compile)
+      - uses: actions/setup-go@v5
+        if: steps.svc.outputs.stack == 'go'
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: backend/${{ inputs.service }}/go.sum
+
+      - name: Build Go binary
         if: steps.svc.outputs.stack == 'go'
         env:
           SERVICE: ${{ inputs.service }}
           GO_PKG: ${{ steps.svc.outputs.go_pkg }}
-          GO_ROOT: ${{ steps.svc.outputs.go_root }}
         run: |
           set -euo pipefail
           SRC_DIR="$GITHUB_WORKSPACE/backend/${SERVICE}"
-          GOPATH_SRC="$GITHUB_WORKSPACE/.gopath/src/${GO_ROOT}"
-          mkdir -p "$(dirname "$GOPATH_SRC")"
-          rm -rf "$GOPATH_SRC"
-          cp -a "$SRC_DIR" "$GOPATH_SRC"
-
-          if [ "$SERVICE" = "user" ]; then
-            RESTORE="go get github.com/Masterminds/glide && cd /go/src/${GO_ROOT} && glide install"
-          else
-            RESTORE="go get github.com/FiloSottile/gvt && cd /go/src/${GO_ROOT} && gvt restore"
-          fi
-
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE/.gopath:/go" \
-            -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:/scripts/gopath-git-rewrites.sh:ro" \
-            -v "$GITHUB_WORKSPACE/.github/scripts/glide-mirrors.yaml:/root/.glide/mirrors.yaml:ro" \
-            -e GO111MODULE=off \
-            -e CGO_ENABLED=0 \
-            -e GOPATH=/go \
-            golang:1.17 \
-            bash -c "bash /scripts/gopath-git-rewrites.sh && ${RESTORE} && go build -o /go/src/${GO_ROOT}/app ${GO_PKG}"
-
-          cp "$GOPATH_SRC/app" "$SRC_DIR/app"
+          case "$SERVICE" in
+            catalogue) (cd "$SRC_DIR" && CGO_ENABLED=0 go build -o app ./cmd/cataloguesvc) ;;
+            payment)   (cd "$SRC_DIR" && CGO_ENABLED=0 go build -o app ./cmd/paymentsvc) ;;
+            user)      (cd "$SRC_DIR" && CGO_ENABLED=0 go build -o app .) ;;
+            *) echo "unknown go service: $SERVICE"; exit 1 ;;
+          esac
           ls -la "$SRC_DIR/app"
 
       - name: Set up Docker Buildx

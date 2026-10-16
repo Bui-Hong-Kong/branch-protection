@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	corelog "log"
@@ -18,9 +16,7 @@ import (
 	"github.com/microservices-demo/user/db"
 	"github.com/microservices-demo/user/db/mongodb"
 	stdopentracing "github.com/opentracing/opentracing-go"
-	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
-	commonMiddleware "github.com/weaveworks/common/middleware"
 )
 
 var (
@@ -28,32 +24,20 @@ var (
 	zip  string
 )
 
-var (
-	HTTPLatency = stdprometheus.NewHistogramVec(stdprometheus.HistogramOpts{
-		Name:    "http_request_duration_seconds",
-		Help:    "Time (in seconds) spent serving HTTP requests.",
-		Buckets: stdprometheus.DefBuckets,
-	}, []string{"method", "path", "status_code", "isWS"})
-)
-
 const (
 	ServiceName = "user"
 )
 
 func init() {
-	stdprometheus.MustRegister(HTTPLatency)
-	flag.StringVar(&zip, "zipkin", os.Getenv("ZIPKIN"), "Zipkin address")
+	flag.StringVar(&zip, "zipkin", os.Getenv("ZIPKIN"), "Zipkin address (ignored; NoopTracer)")
 	flag.StringVar(&port, "port", "8084", "Port on which to run")
 	db.Register("mongodb", &mongodb.Mongo{})
 }
 
 func main() {
-
 	flag.Parse()
-	// Mechanical stuff.
 	errc := make(chan error)
 
-	// Log domain.
 	var logger log.Logger
 	{
 		logger = log.NewLogfmtLogger(os.Stderr)
@@ -61,41 +45,9 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	// Find service local IP.
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		logger.Log("err", err)
-		os.Exit(1)
-	}
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	host := strings.Split(localAddr.String(), ":")[0]
-	defer conn.Close()
+	tracer := stdopentracing.Tracer(stdopentracing.NoopTracer{})
+	stdopentracing.InitGlobalTracer(tracer)
 
-	var tracer stdopentracing.Tracer
-	{
-		if zip == "" {
-			tracer = stdopentracing.NoopTracer{}
-		} else {
-			logger := log.With(logger, "tracer", "Zipkin")
-			logger.Log("addr", zip)
-			collector, err := zipkin.NewHTTPCollector(
-				zip,
-				zipkin.HTTPLogger(logger),
-			)
-			if err != nil {
-				logger.Log("err", err)
-				os.Exit(1)
-			}
-			tracer, err = zipkin.NewTracer(
-				zipkin.NewRecorder(collector, false, fmt.Sprintf("%v:%v", host, port), ServiceName),
-			)
-			if err != nil {
-				logger.Log("err", err)
-				os.Exit(1)
-			}
-		}
-		stdopentracing.InitGlobalTracer(tracer)
-	}
 	dbconn := false
 	for !dbconn {
 		err := db.Init()
@@ -110,7 +62,6 @@ func main() {
 	}
 
 	fieldKeys := []string{"method"}
-	// Service domain.
 	var service api.Service
 	{
 		service = api.NewFixedService()
@@ -134,29 +85,14 @@ func main() {
 		)
 	}
 
-	// Endpoint domain.
 	endpoints := api.MakeEndpoints(service, tracer)
+	handler := api.MakeHTTPHandler(endpoints, logger, tracer)
 
-	// HTTP router
-	router := api.MakeHTTPHandler(endpoints, logger, tracer)
-
-	httpMiddleware := []commonMiddleware.Interface{
-		commonMiddleware.Instrument{
-			Duration:     HTTPLatency,
-			RouteMatcher: router,
-		},
-	}
-
-	// Handler
-	handler := commonMiddleware.Merge(httpMiddleware...).Wrap(router)
-
-	// Create and launch the HTTP server.
 	go func() {
 		logger.Log("transport", "HTTP", "port", port)
 		errc <- http.ListenAndServe(fmt.Sprintf(":%v", port), handler)
 	}()
 
-	// Capture interrupts.
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
