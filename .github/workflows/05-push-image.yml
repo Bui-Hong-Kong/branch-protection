@@ -21,7 +21,7 @@ on:
           - user
           - frontend
       image_tag:
-        description: Image tag (empty = latest <service>-v* Git tag, else short SHA)
+        description: Image tag (empty = newest <service>-v* Git tag, else short SHA)
         type: string
         required: false
         default: ""
@@ -126,7 +126,6 @@ jobs:
           echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           echo "git_tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "image=${REGISTRY}/${ECR_REPO}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "image_latest=${REGISTRY}/${ECR_REPO}:latest" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java
         if: steps.svc.outputs.stack == 'java'
@@ -175,7 +174,6 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
-            ${{ steps.meta.outputs.image_latest }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -184,6 +182,5 @@ jobs:
           echo "### Pushed image (env-1)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`${{ steps.meta.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- \`${{ steps.meta.outputs.image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Promote with **6. Copy image** (service=\`${{ inputs.service }}\`, tag=\`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"

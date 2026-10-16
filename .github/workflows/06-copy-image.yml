@@ -20,15 +20,10 @@ on:
           - user
           - frontend
       image_tag:
-        description: Tag to copy (empty = latest <service>-v* release → stripped to vX.Y.Z)
+        description: Tag to copy (empty = newest <service>-v* release → stripped to vX.Y.Z)
         type: string
         required: false
         default: ""
-      also_latest:
-        description: Also tag the copy as latest on env-2
-        type: boolean
-        required: false
-        default: true
 
 permissions:
   contents: read
@@ -91,17 +86,12 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "src=${SRC}" >> "$GITHUB_OUTPUT"
           echo "dest=${DEST}" >> "$GITHUB_OUTPUT"
-          echo "dest_latest=${REGISTRY}/${DEST_REPO}:latest" >> "$GITHUB_OUTPUT"
 
       - name: Copy image with crane
         run: |
           set -euo pipefail
           echo "Copying ${{ steps.meta.outputs.src }} -> ${{ steps.meta.outputs.dest }}"
           crane copy "${{ steps.meta.outputs.src }}" "${{ steps.meta.outputs.dest }}"
-          if [ "${{ inputs.also_latest }}" = "true" ]; then
-            echo "Also tagging ${{ steps.meta.outputs.dest_latest }}"
-            crane copy "${{ steps.meta.outputs.src }}" "${{ steps.meta.outputs.dest_latest }}"
-          fi
 
       - name: Summary
         run: |
@@ -109,6 +99,3 @@ jobs:
           echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Source: \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Dest: \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ inputs.also_latest }}" = "true" ]; then
-            echo "- Dest latest: \`${{ steps.meta.outputs.dest_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
