@@ -2,7 +2,7 @@
 # Job names are stable (no matrix in the check name) for GitHub rulesets.
 #
 #   Java       → Checkstyle + SpotBugs (+ Maven package) on JDK 8
-#   Go         → gvt/glide restore, then golangci-lint + go build
+#   Go         → gvt/glide restore (with gopkg.in remaps), then golangci-lint + go build
 #   JavaScript → ESLint (frontend/)
 #
 # Merge queue does not re-run these jobs.
@@ -34,7 +34,6 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # JDK 8 avoids hibernate-validator pulling javafx.base SNAPSHOT (JDK 11+).
           java-version: "8"
           cache: maven
           cache-dependency-path: |
@@ -50,13 +49,10 @@ jobs:
             echo "::group::Lint Java — ${svc}"
             cd "$GITHUB_WORKSPACE/backend/${svc}"
             mvn -B -DskipTests package
-            mvn -B com.puppycrawl.tools:checkstyle-maven-plugin:3.3.1:check \
+            mvn -B org.apache.maven.plugins:maven-checkstyle-plugin:3.3.1:check \
               -Dcheckstyle.config.location="$CHECKSTYLE_CFG" \
               -Dcheckstyle.consoleOutput=true \
-              -Dcheckstyle.failsOnError=true \
-              -Dcheckstyle.includes="**/*.java" \
-              -Dcheckstyle.excludes="**/target/**"
-            # SpotBugs 4.2.x runs on JDK 8; High threshold for legacy code.
+              -Dcheckstyle.failsOnError=true
             mvn -B com.github.spotbugs:spotbugs-maven-plugin:4.2.3:check \
               -Dspotbugs.failOnError=true \
               -Dspotbugs.effort=Default \
@@ -75,33 +71,40 @@ jobs:
         run: |
           set -euo pipefail
           LINT_IMAGE="golangci/golangci-lint:v1.51.2"
+          REWRITES="/scripts/gopath-git-rewrites.sh"
 
           restore_gvt() {
             local svc="$1" root="$2"
+            echo "::group::Restore Go deps — ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
             cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${root} && gvt restore"
+            echo "::endgroup::"
           }
 
           restore_glide() {
             local svc="$1" root="$2"
+            echo "::group::Restore Go deps — ${svc}"
             dest="$GITHUB_WORKSPACE/.gopath/src/${root}"
             rm -rf "$dest"
             mkdir -p "$(dirname "$dest")"
             cp -a "$GITHUB_WORKSPACE/backend/${svc}" "$dest"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${root} && glide install"
+            echo "::endgroup::"
           }
 
           lint_one() {
@@ -198,6 +201,7 @@ jobs:
       - name: Go build (restore deps then compile)
         run: |
           set -euo pipefail
+          REWRITES="/scripts/gopath-git-rewrites.sh"
           build_gvt() {
             local service="$1" go_pkg="$2" go_root="$3"
             echo "::group::Build Go — ${service}"
@@ -208,11 +212,12 @@ jobs:
             cp -a "$SRC_DIR" "$GOPATH_SRC"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }
@@ -226,11 +231,12 @@ jobs:
             cp -a "$SRC_DIR" "$GOPATH_SRC"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             test -f "$GOPATH_SRC/app"
             echo "::endgroup::"
           }

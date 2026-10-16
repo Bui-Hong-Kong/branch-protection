@@ -42,7 +42,6 @@ jobs:
           languages: java
           config-file: .github/codeql/codeql-config.yml
 
-      # Autobuild cannot find multi-module layout under backend/* — build explicitly.
       - name: Build Java services
         run: |
           set -euo pipefail
@@ -73,6 +72,7 @@ jobs:
       - name: Restore deps and build Go services
         run: |
           set -euo pipefail
+          REWRITES="/scripts/gopath-git-rewrites.sh"
           build_gvt() {
             local service="$1" go_pkg="$2" go_root="$3"
             echo "::group::Go build ${service}"
@@ -83,11 +83,12 @@ jobs:
             cp -a "$SRC_DIR" "$GOPATH_SRC"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/FiloSottile/gvt && cd /go/src/${go_root} && gvt restore && go build -o /go/src/${go_root}/app ${go_pkg}"
             echo "::endgroup::"
           }
           build_glide() {
@@ -100,11 +101,12 @@ jobs:
             cp -a "$SRC_DIR" "$GOPATH_SRC"
             docker run --rm \
               -v "$GITHUB_WORKSPACE/.gopath:/go" \
+              -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:${REWRITES}:ro" \
               -e GO111MODULE=off \
               -e CGO_ENABLED=0 \
               -e GOPATH=/go \
               golang:1.17 \
-              sh -c "go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
+              bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash ${REWRITES} && go get github.com/Masterminds/glide && cd /go/src/${go_root} && glide install && go build -o /go/src/${go_root}/app ${go_pkg}"
             echo "::endgroup::"
           }
           build_gvt catalogue \

@@ -164,11 +164,12 @@ jobs:
 
           docker run --rm \
             -v "$GITHUB_WORKSPACE/.gopath:/go" \
+            -v "$GITHUB_WORKSPACE/.github/scripts/gopath-git-rewrites.sh:/scripts/gopath-git-rewrites.sh:ro" \
             -e GO111MODULE=off \
             -e CGO_ENABLED=0 \
             -e GOPATH=/go \
             golang:1.17 \
-            sh -c "${RESTORE} && go build -o /go/src/${GO_ROOT}/app ${GO_PKG}"
+            bash -lc "apt-get update -qq && apt-get install -y -qq git >/dev/null && bash /scripts/gopath-git-rewrites.sh && ${RESTORE} && go build -o /go/src/${GO_ROOT}/app ${GO_PKG}"
 
           cp "$GOPATH_SRC/app" "$SRC_DIR/app"
           ls -la "$SRC_DIR/app"
