@@ -5,7 +5,7 @@
 #   Go         → golangci-lint + go build
 #   JavaScript → ESLint + yarn/docker frontend
 
-name: 3. Pre-merge checks
+name: 2. Pre-merge checks
 
 on:
   pull_request:

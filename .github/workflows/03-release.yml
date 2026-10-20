@@ -3,7 +3,7 @@
 # Path roots defined in release/services.mjs.
 # Does not commit back to main. Does not build/push images.
 
-name: 4. Release
+name: 3. Release
 
 on:
   push:

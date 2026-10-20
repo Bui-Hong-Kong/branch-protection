@@ -5,7 +5,7 @@ Developer pull `main`, tạo nhánh trong cùng repo, mở pull request. `main` 
 ## Merge khi nào
 
 - PR vào `main`, nhánh đã cập nhật với `main` (merge queue / up to date nếu ruleset bật).
-- Workflow **3. Pre-merge checks** pass trên PR: lint + build cho Java, Go, JavaScript (chạy hết trên mọi PR — không có CodeQL / scan riêng trên `main`).
+- Workflow **2. Pre-merge checks** pass trên PR: lint + build cho Java, Go, JavaScript (chạy hết trên mọi PR).
 
 App Sock Shop: `backend/<service>/` (carts, catalogue, orders, payment, shipping, user) và `frontend/`. Mỗi service có semver riêng (`carts-vX.Y.Z`, …).
 
@@ -44,7 +44,7 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 
 ## Release & images
 
-- Conventional Commits trên `main` → **4. Release** tạo tag `<service>-vX.Y.Z`.
-- **5. Push image** → ECR `sockshop-<service>-env-1`.
-- **6. Promote image to UAT** → `env-2` (Environment `env-2`).
-- **7. Promote image to PROD** → `env-3` (Environment `prod`).
+- Conventional Commits trên `main` → **3. Release** tạo tag `<service>-vX.Y.Z`.
+- **4. Promote image to DEV** → ECR `sockshop-<service>-env-1`.
+- **5. Promote image to UAT** → `env-2` (Environment `env-2`).
+- **6. Promote image to PROD** → `env-3` (Environment `prod`).

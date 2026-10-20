@@ -2,7 +2,7 @@
 # Uses repo variable AWS_ROLE_ARN_COPY (same role as UAT). GitHub Environment: prod.
 # ECR: sockshop-<service>-env-2 → sockshop-<service>-env-3
 
-name: 7. Promote image to PROD
+name: 6. Promote image to PROD
 
 on:
   workflow_dispatch:

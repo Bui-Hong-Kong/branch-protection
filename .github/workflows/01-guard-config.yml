@@ -1,7 +1,7 @@
 # Only the allowed owner may change workflow, ruleset, or CODEOWNERS files.
 # Runs on pull requests only. Complements CODEOWNERS + require_code_owner_review.
 
-name: 2. Guard config
+name: 1. Guard config
 
 on:
   pull_request:
