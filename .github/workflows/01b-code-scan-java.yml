@@ -1,0 +1,56 @@
+# CodeQL Java — main / manual only (Maven + extractor is slow).
+# Kept out of PR workflow so ruleset code_scanning does not wait on skipped java.
+
+name: 1b. Code scan (java)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: code-scan-java-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    name: Analyze (java)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+          cache-dependency-path: |
+            backend/carts/pom.xml
+            backend/orders/pom.xml
+            backend/shipping/pom.xml
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          config-file: .github/codeql/codeql-config.yml
+
+      - name: Build Java services
+        run: |
+          set -euo pipefail
+          for svc in carts orders shipping; do
+            echo "::group::Maven package ${svc}"
+            mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
+            echo "::endgroup::"
+          done
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
