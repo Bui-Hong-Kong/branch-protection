@@ -1,14 +1,14 @@
-# Manual: copy one service image env-1 → env-2 with crane (no rebuild).
-# Uses repo variable AWS_ROLE_ARN_COPY (OIDC). Does not run on PR/merge.
+# Manual: promote one service image env-1 (dev) → env-2 (UAT) with crane (no rebuild).
+# Uses repo variable AWS_ROLE_ARN_COPY (OIDC). GitHub Environment: env-2.
 # ECR: sockshop-<service>-env-1 → sockshop-<service>-env-2
 
-name: 6. Copy image
+name: 6. Promote image to UAT
 
 on:
   workflow_dispatch:
     inputs:
       service:
-        description: Service image to copy
+        description: Service image to promote to UAT
         type: choice
         required: true
         options:
@@ -20,7 +20,7 @@ on:
           - user
           - frontend
       image_tag:
-        description: Tag to copy (empty = newest <service>-v* release → stripped to vX.Y.Z)
+        description: Tag to promote (empty = newest <service>-v* release → stripped to vX.Y.Z)
         type: string
         required: false
         default: ""
@@ -30,7 +30,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: copy-image-${{ inputs.service }}-env-2
+  group: promote-image-uat-${{ inputs.service }}
   cancel-in-progress: false
 
 env:
@@ -38,8 +38,8 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  copy:
-    name: Crane copy ${{ inputs.service }} → env-2
+  promote:
+    name: Promote ${{ inputs.service }} → UAT
     runs-on: ubuntu-latest
     environment: env-2
     steps:
@@ -87,15 +87,15 @@ jobs:
           echo "src=${SRC}" >> "$GITHUB_OUTPUT"
           echo "dest=${DEST}" >> "$GITHUB_OUTPUT"
 
-      - name: Copy image with crane
+      - name: Promote image with crane
         run: |
           set -euo pipefail
-          echo "Copying ${{ steps.meta.outputs.src }} -> ${{ steps.meta.outputs.dest }}"
+          echo "Promoting ${{ steps.meta.outputs.src }} -> ${{ steps.meta.outputs.dest }}"
           crane copy "${{ steps.meta.outputs.src }}" "${{ steps.meta.outputs.dest }}"
 
       - name: Summary
         run: |
-          echo "### Copied image (no rebuild)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Promoted image → UAT (no rebuild)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Source: \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Dest: \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source (dev / env-1): \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dest (UAT / env-2): \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"
