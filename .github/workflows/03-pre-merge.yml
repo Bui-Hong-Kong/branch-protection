@@ -1,7 +1,7 @@
-# Pre-merge quality gates.
+# PR-only quality gates (all languages on every PR — no CodeQL / main-only scan).
 # Job names are stable for GitHub rulesets.
 #
-#   Java       → single Maven package + Checkstyle (SpotBugs deferred; CodeQL Java on main)
+#   Java       → Maven package + Checkstyle
 #   Go         → golangci-lint + go build
 #   JavaScript → ESLint + yarn/docker frontend
 
