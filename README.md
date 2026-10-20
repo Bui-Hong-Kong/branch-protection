@@ -46,5 +46,5 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 
 - Conventional Commits trên `main` → **4. Release** tạo tag `<service>-vX.Y.Z`.
 - **5. Push image** → ECR `sockshop-<service>-env-1`.
-- **6. Copy image** → `env-2` (UAT).
-- **7. Copy image to prod** → `env-3` (prod), Environment `prod`.
+- **6. Promote image to UAT** → `env-2` (Environment `env-2`).
+- **7. Promote image to PROD** → `env-3` (Environment `prod`).

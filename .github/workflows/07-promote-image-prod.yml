@@ -1,14 +1,14 @@
-# Manual: copy one service image env-2 (UAT) → env-3 (prod) with crane (no rebuild).
-# Uses repo variable AWS_ROLE_ARN_COPY (same role as UAT copy). GitHub Environment: prod.
+# Manual: promote one service image env-2 (UAT) → env-3 (PROD) with crane (no rebuild).
+# Uses repo variable AWS_ROLE_ARN_COPY (same role as UAT). GitHub Environment: prod.
 # ECR: sockshop-<service>-env-2 → sockshop-<service>-env-3
 
-name: 7. Copy image to prod
+name: 7. Promote image to PROD
 
 on:
   workflow_dispatch:
     inputs:
       service:
-        description: Service image to copy
+        description: Service image to promote to PROD
         type: choice
         required: true
         options:
@@ -20,7 +20,7 @@ on:
           - user
           - frontend
       image_tag:
-        description: Tag to copy (empty = newest <service>-v* release → stripped to vX.Y.Z)
+        description: Tag to promote (empty = newest <service>-v* release → stripped to vX.Y.Z)
         type: string
         required: false
         default: ""
@@ -30,7 +30,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: copy-image-${{ inputs.service }}-env-3
+  group: promote-image-prod-${{ inputs.service }}
   cancel-in-progress: false
 
 env:
@@ -38,8 +38,8 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  copy:
-    name: Crane copy ${{ inputs.service }} → env-3
+  promote:
+    name: Promote ${{ inputs.service }} → PROD
     runs-on: ubuntu-latest
     environment: prod
     steps:
@@ -87,15 +87,15 @@ jobs:
           echo "src=${SRC}" >> "$GITHUB_OUTPUT"
           echo "dest=${DEST}" >> "$GITHUB_OUTPUT"
 
-      - name: Copy image with crane
+      - name: Promote image with crane
         run: |
           set -euo pipefail
-          echo "Copying ${{ steps.meta.outputs.src }} -> ${{ steps.meta.outputs.dest }}"
+          echo "Promoting ${{ steps.meta.outputs.src }} -> ${{ steps.meta.outputs.dest }}"
           crane copy "${{ steps.meta.outputs.src }}" "${{ steps.meta.outputs.dest }}"
 
       - name: Summary
         run: |
-          echo "### Copied image UAT → prod (no rebuild)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Promoted image → PROD (no rebuild)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Source (env-2): \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Dest (env-3): \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source (UAT / env-2): \`${{ steps.meta.outputs.src }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dest (PROD / env-3): \`${{ steps.meta.outputs.dest }}\`" >> "$GITHUB_STEP_SUMMARY"

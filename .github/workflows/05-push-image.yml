@@ -1,6 +1,6 @@
 # Manual: build one Sock Shop service image and push to ECR env-1.
 # Compile steps live in this workflow; runtime Dockerfile.ci (or service Dockerfile for DBs).
-# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote via 6. Copy image.
+# Uses repo variable AWS_ROLE_ARN_PUSH (OIDC). Promote via 6. Promote image to UAT.
 # ECR repo name: sockshop-<service>-env-1
 
 name: 5. Push image
@@ -183,4 +183,4 @@ jobs:
           echo "- Service: \`${{ inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`${{ steps.meta.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Promote with **6. Copy image** (service=\`${{ inputs.service }}\`, tag=\`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Promote with **6. Promote image to UAT** (service=\`${{ inputs.service }}\`, tag=\`${{ steps.meta.outputs.tag }}\`)." >> "$GITHUB_STEP_SUMMARY"
