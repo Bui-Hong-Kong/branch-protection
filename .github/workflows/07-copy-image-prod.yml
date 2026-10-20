@@ -1,5 +1,5 @@
 # Manual: copy one service image env-2 (UAT) → env-3 (prod) with crane (no rebuild).
-# Uses repo variable AWS_ROLE_ARN_COPY_PROD (OIDC). GitHub Environment: prod.
+# Uses repo variable AWS_ROLE_ARN_COPY (same role as UAT copy). GitHub Environment: prod.
 # ECR: sockshop-<service>-env-2 → sockshop-<service>-env-3
 
 name: 7. Copy image to prod
@@ -48,7 +48,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN_COPY_PROD }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_COPY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
