@@ -31,7 +31,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: push-image-${{ inputs.service }}-env-1
+  group: promote-image-dev-${{ inputs.service }}
   cancel-in-progress: false
 
 env:
@@ -39,8 +39,8 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  push:
-    name: Build and push ${{ inputs.service }} (env-1)
+  promote:
+    name: Promote ${{ inputs.service }} → DEV
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
