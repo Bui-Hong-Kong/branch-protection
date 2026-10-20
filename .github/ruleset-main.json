@@ -40,18 +40,6 @@
         "min_entries_to_merge": 1,
         "min_entries_to_merge_wait_minutes": 0
       }
-    },
-    {
-      "type": "code_scanning",
-      "parameters": {
-        "code_scanning_tools": [
-          {
-            "tool": "CodeQL",
-            "alerts_threshold": "errors",
-            "security_alerts_threshold": "high_or_higher"
-          }
-        ]
-      }
     }
   ]
 }
