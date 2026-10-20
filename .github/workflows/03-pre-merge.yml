@@ -84,6 +84,8 @@ jobs:
           version: v1.59.1
           working-directory: backend/catalogue
           args: --config=${{ github.workspace }}/.golangci.yml
+          # Avoid flaky fetch of remote jsonschema during config verify.
+          verify: false
 
       - name: golangci-lint (payment)
         uses: golangci/golangci-lint-action@v6
@@ -91,6 +93,7 @@ jobs:
           version: v1.59.1
           working-directory: backend/payment
           args: --config=${{ github.workspace }}/.golangci.yml
+          verify: false
 
       - name: golangci-lint (user)
         uses: golangci/golangci-lint-action@v6
@@ -98,6 +101,7 @@ jobs:
           version: v1.59.1
           working-directory: backend/user
           args: --config=${{ github.workspace }}/.golangci.yml
+          verify: false
 
   lint-javascript:
     name: Lint (javascript)
