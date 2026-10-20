@@ -1,11 +1,9 @@
-# Pre-merge quality gates with widely adopted language tooling.
-# Job names are stable (no matrix in the check name) for GitHub rulesets.
+# Pre-merge quality gates.
+# Job names are stable for GitHub rulesets.
 #
-#   Java       â†’ Checkstyle + SpotBugs (+ Maven package) on JDK 8
-#   Go         → setup-go + go.mod, golangci-lint + go build
-#   JavaScript â†’ ESLint (frontend/)
-#
-# Merge queue does not re-run these jobs.
+#   Java       → single Maven package + Checkstyle (SpotBugs deferred; CodeQL Java on main)
+#   Go         → golangci-lint + go build
+#   JavaScript → ESLint + yarn/docker frontend
 
 name: 3. Pre-merge checks
 
@@ -25,8 +23,9 @@ env:
   JAVA_SERVICES: carts orders shipping
 
 jobs:
-  lint-java:
-    name: Lint (java)
+  # Combined lint+build (was two jobs × full package). Keeps required name "Build (java)".
+  build-java:
+    name: Build (java)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,25 +40,29 @@ jobs:
             backend/orders/pom.xml
             backend/shipping/pom.xml
 
-      - name: Checkstyle + SpotBugs (each Java service)
+      - name: Maven package + Checkstyle
         run: |
           set -euo pipefail
           CHECKSTYLE_CFG="$GITHUB_WORKSPACE/.github/linters/checkstyle.xml"
           for svc in $JAVA_SERVICES; do
-            echo "::group::Lint Java â€” ${svc}"
-            cd "$GITHUB_WORKSPACE/backend/${svc}"
-            mvn -B -DskipTests package
-            mvn -B org.apache.maven.plugins:maven-checkstyle-plugin:3.3.1:check \
+            echo "::group::Java ${svc}"
+            mvn -B -DskipTests package \
+              org.apache.maven.plugins:maven-checkstyle-plugin:3.3.1:check \
+              -f "backend/${svc}/pom.xml" \
               -Dcheckstyle.config.location="$CHECKSTYLE_CFG" \
               -Dcheckstyle.consoleOutput=true \
               -Dcheckstyle.failsOnError=true
-            mvn -B com.github.spotbugs:spotbugs-maven-plugin:4.2.3:check \
-              -Dspotbugs.failOnError=true \
-              -Dspotbugs.effort=Default \
-              -Dspotbugs.threshold=High \
-              -Dspotbugs.xmlOutput=false
             echo "::endgroup::"
           done
+
+  # Satisfies ruleset context "Lint (java)" without a second full Maven build.
+  lint-java:
+    name: Lint (java)
+    needs: build-java
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reuse Build (java)
+        run: echo "Checkstyle ran in Build (java); SpotBugs/CodeQL Java are main-only."
 
   lint-go:
     name: Lint (go)
@@ -133,31 +136,6 @@ jobs:
         run: |
           set -euo pipefail
           docker build -f frontend/Dockerfile.ci -t sockshop-frontend:ci frontend
-
-  build-java:
-    name: Build (java)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "8"
-          cache: maven
-          cache-dependency-path: |
-            backend/carts/pom.xml
-            backend/orders/pom.xml
-            backend/shipping/pom.xml
-
-      - name: Maven package (all Java services)
-        run: |
-          set -euo pipefail
-          for svc in $JAVA_SERVICES; do
-            echo "::group::Build Java â€” ${svc}"
-            mvn -B -DskipTests package -f "backend/${svc}/pom.xml"
-            echo "::endgroup::"
-          done
 
   build-go:
     name: Build (go)

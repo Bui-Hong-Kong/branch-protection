@@ -1,4 +1,4 @@
-# CodeQL for Java, Go, and JavaScript (Sock Shop backend + frontend).
+# CodeQL: Go + JS on PRs; Java only on main (slow Maven + extractor).
 
 name: 1. Code scan
 
@@ -21,6 +21,8 @@ concurrency:
 jobs:
   java:
     name: Analyze (java)
+    # Heavy: run on main / manual only — not required on PRs.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
