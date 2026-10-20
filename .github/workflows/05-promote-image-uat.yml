@@ -2,7 +2,7 @@
 # Uses repo variable AWS_ROLE_ARN_COPY (OIDC). GitHub Environment: env-2.
 # ECR: sockshop-<service>-env-1 → sockshop-<service>-env-2
 
-name: 6. Promote image to UAT
+name: 5. Promote image to UAT
 
 on:
   workflow_dispatch:
