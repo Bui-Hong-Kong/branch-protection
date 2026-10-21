@@ -25,5 +25,10 @@ app.kubernetes.io/part-of: sockshop
 {{- end }}
 
 {{- define "sockshop.appImage" -}}
+{{- $app := index .root.Values.apps .name | default dict -}}
+{{- if $app.image -}}
+{{ $app.image }}
+{{- else -}}
 {{ printf "%s/sockshop-%s-%s:%s" .root.Values.global.ecrRegistry .name .root.Values.global.ecrEnv .root.Values.global.imageTag }}
+{{- end -}}
 {{- end }}
