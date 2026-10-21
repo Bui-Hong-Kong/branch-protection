@@ -9,6 +9,8 @@ apps:
     replicas: 1
   carts:
     replicas: 1
+    # Same as DEV until ECR carts rebuild (Zipkin/Boot mismatch).
+    image: weaveworksdemos/carts:0.4.8
   orders:
     replicas: 1
   user:
@@ -17,3 +19,7 @@ apps:
     replicas: 1
   shipping:
     replicas: 1
+
+data:
+  catalogueDb:
+    enabled: false
