@@ -36,12 +36,17 @@ apps:
       limits:
         cpu: 500m
         memory: 256Mi
-    # Override entrypoint bits so DSN flag is always present (Go flag, not env).
+    # DSN from K8s secret (synced from Secrets Manager; never commit password).
+    # kubectl -n <ns> create secret generic catalogue-db --from-literal=dsn='...'
     command:
-      - "/app"
+      - "/bin/sh"
+      - "-c"
     args:
-      - "-port=8080"
-      - "-DSN=catalogue_user:default_password@tcp(catalogue-db:3306)/socksdb"
+      - 'exec /app -port=8080 -DSN="$CATALOGUE_DSN"'
+    envFrom:
+      - name: CATALOGUE_DSN
+        secretName: catalogue-db
+        key: dsn
     env: {}
 
   carts:
@@ -120,7 +125,8 @@ apps:
 # In-cluster data plane (public images; not from ECR promote)
 data:
   catalogueDb:
-    enabled: true
+    # Prefer RDS (platform); leave false when using Secrets Manager DSN.
+    enabled: false
     image: "weaveworksdemos/catalogue-db"
     port: 3306
     env:
