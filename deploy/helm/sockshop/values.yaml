@@ -36,8 +36,11 @@ apps:
       limits:
         cpu: 500m
         memory: 256Mi
-    # Dockerfile.ci ENTRYPOINT already sets -port=8080; DSN is a flag (not env).
+    # Override entrypoint bits so DSN flag is always present (Go flag, not env).
+    command:
+      - "/app"
     args:
+      - "-port=8080"
       - "-DSN=catalogue_user:default_password@tcp(catalogue-db:3306)/socksdb"
     env: {}
 
