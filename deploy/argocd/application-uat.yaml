@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sockshop-uat
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Bui-Hong-Kong/branch-protection.git
+    targetRevision: main
+    path: deploy/helm/sockshop
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-uat.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sockshop-uat
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

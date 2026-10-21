@@ -1,0 +1,19 @@
+global:
+  ecrEnv: "env-1"
+  imageTag: "v1.1.0"
+
+apps:
+  frontend:
+    replicas: 1
+  catalogue:
+    replicas: 1
+  carts:
+    replicas: 1
+  orders:
+    replicas: 1
+  user:
+    replicas: 1
+  payment:
+    replicas: 1
+  shipping:
+    replicas: 1
