@@ -9,6 +9,8 @@ apps:
     replicas: 1
   carts:
     replicas: 1
+    # ECR v1.1.0 carts jar is broken (Zipkin 1.1 vs Boot 2.0.4). Use upstream until rebuilt.
+    image: weaveworksdemos/carts:0.4.8
   orders:
     replicas: 1
   user:
