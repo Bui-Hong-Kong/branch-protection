@@ -4,16 +4,22 @@ global:
 
 apps:
   frontend:
-    replicas: 2
+    replicas: 1
   catalogue:
-    replicas: 2
+    replicas: 1
   carts:
-    replicas: 2
+    replicas: 1
+    # Same as DEV/UAT until ECR carts rebuild.
+    image: weaveworksdemos/carts:0.4.8
   orders:
-    replicas: 2
+    replicas: 1
   user:
-    replicas: 2
+    replicas: 1
   payment:
-    replicas: 2
+    replicas: 1
   shipping:
-    replicas: 2
+    replicas: 1
+
+data:
+  catalogueDb:
+    enabled: false
