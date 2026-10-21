@@ -26,6 +26,10 @@ spec:
           ports:
             - name: http
               containerPort: {{ $app.port }}
+          {{- with $app.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if $app.env }}
           env:
             {{- range $k, $v := $app.env }}

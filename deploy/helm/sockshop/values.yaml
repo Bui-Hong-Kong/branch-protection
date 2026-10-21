@@ -36,9 +36,10 @@ apps:
       limits:
         cpu: 500m
         memory: 256Mi
-    env:
-      # Go catalogue reads DSN (compose default user/password + socksdb)
-      DSN: "catalogue_user:default_password@tcp(catalogue-db:3306)/socksdb"
+    # Dockerfile.ci ENTRYPOINT already sets -port=8080; DSN is a flag (not env).
+    args:
+      - "-DSN=catalogue_user:default_password@tcp(catalogue-db:3306)/socksdb"
+    env: {}
 
   carts:
     enabled: true
