@@ -1,0 +1,259 @@
+{{- if .Values.data.catalogueDb.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: catalogue-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sockshop.selectorLabels" (dict "root" . "name" "catalogue-db") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sockshop.selectorLabels" (dict "root" . "name" "catalogue-db") | nindent 8 }}
+    spec:
+      containers:
+        - name: catalogue-db
+          image: {{ .Values.data.catalogueDb.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: {{ .Values.data.catalogueDb.port }}
+          env:
+            {{- range $k, $v := .Values.data.catalogueDb.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogue-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: catalogue-db
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sockshop.selectorLabels" (dict "root" . "name" "catalogue-db") | nindent 4 }}
+  ports:
+    - name: mysql
+      port: {{ .Values.data.catalogueDb.port }}
+      targetPort: mysql
+{{- end }}
+
+{{- if .Values.data.userDb.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: user-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sockshop.selectorLabels" (dict "root" . "name" "user-db") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sockshop.selectorLabels" (dict "root" . "name" "user-db") | nindent 8 }}
+    spec:
+      containers:
+        - name: user-db
+          image: {{ .Values.data.userDb.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongo
+              containerPort: {{ .Values.data.userDb.port }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: user-db
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sockshop.selectorLabels" (dict "root" . "name" "user-db") | nindent 4 }}
+  ports:
+    - name: mongo
+      port: {{ .Values.data.userDb.port }}
+      targetPort: mongo
+{{- end }}
+
+{{- if .Values.data.cartsDb.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carts-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: carts-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sockshop.selectorLabels" (dict "root" . "name" "carts-db") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sockshop.selectorLabels" (dict "root" . "name" "carts-db") | nindent 8 }}
+    spec:
+      containers:
+        - name: carts-db
+          image: {{ .Values.data.cartsDb.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongo
+              containerPort: {{ .Values.data.cartsDb.port }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carts-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: carts-db
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sockshop.selectorLabels" (dict "root" . "name" "carts-db") | nindent 4 }}
+  ports:
+    - name: mongo
+      port: {{ .Values.data.cartsDb.port }}
+      targetPort: mongo
+{{- end }}
+
+{{- if .Values.data.ordersDb.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orders-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sockshop.selectorLabels" (dict "root" . "name" "orders-db") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sockshop.selectorLabels" (dict "root" . "name" "orders-db") | nindent 8 }}
+    spec:
+      containers:
+        - name: orders-db
+          image: {{ .Values.data.ordersDb.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongo
+              containerPort: {{ .Values.data.ordersDb.port }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-db
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orders-db
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sockshop.selectorLabels" (dict "root" . "name" "orders-db") | nindent 4 }}
+  ports:
+    - name: mongo
+      port: {{ .Values.data.ordersDb.port }}
+      targetPort: mongo
+{{- end }}
+
+{{- if .Values.data.rabbitmq.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sockshop.selectorLabels" (dict "root" . "name" "rabbitmq") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sockshop.selectorLabels" (dict "root" . "name" "rabbitmq") | nindent 8 }}
+    spec:
+      containers:
+        - name: rabbitmq
+          image: {{ .Values.data.rabbitmq.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: amqp
+              containerPort: {{ .Values.data.rabbitmq.port }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "sockshop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sockshop.selectorLabels" (dict "root" . "name" "rabbitmq") | nindent 4 }}
+  ports:
+    - name: amqp
+      port: {{ .Values.data.rabbitmq.port }}
+      targetPort: amqp
+{{- end }}

@@ -1,0 +1,155 @@
+# Shared defaults. Env-specific: values-dev.yaml / values-uat.yaml / values-prod.yaml
+
+nameOverride: ""
+fullnameOverride: sockshop
+
+global:
+  # ECR: <registry>/sockshop-<service>-<ecrEnv>:<tag>
+  ecrRegistry: "975305815837.dkr.ecr.ap-southeast-1.amazonaws.com"
+  ecrEnv: "env-1"
+  imageTag: "v1.1.0"
+  imagePullPolicy: IfNotPresent
+
+# App Deployments + Services (names must match frontend DNS: catalogue, carts, …)
+apps:
+  frontend:
+    enabled: true
+    port: 8079
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    env: {}
+
+  catalogue:
+    enabled: true
+    port: 8080
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    env:
+      # Go catalogue reads DSN (compose default user/password + socksdb)
+      DSN: "catalogue_user:default_password@tcp(catalogue-db:3306)/socksdb"
+
+  carts:
+    enabled: true
+    port: 80
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 768Mi
+    env:
+      db: "carts-db"
+      zipkin_enabled: "false"
+
+  orders:
+    enabled: true
+    port: 80
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 768Mi
+    env:
+      db: "orders-db"
+      zipkin_enabled: "false"
+
+  user:
+    enabled: true
+    port: 8080
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    env:
+      MONGO_HOST: "user-db:27017"
+      USER_DATABASE: "mongodb"
+
+  payment:
+    enabled: true
+    port: 8080
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+    env: {}
+
+  shipping:
+    enabled: true
+    port: 80
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 768Mi
+    env:
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+      zipkin_enabled: "false"
+
+# In-cluster data plane (public images; not from ECR promote)
+data:
+  catalogueDb:
+    enabled: true
+    image: "weaveworksdemos/catalogue-db"
+    port: 3306
+    env:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+      MYSQL_DATABASE: "socksdb"
+
+  userDb:
+    enabled: true
+    image: "weaveworksdemos/user-db"
+    port: 27017
+
+  cartsDb:
+    enabled: true
+    image: "mongo:4.4"
+    port: 27017
+
+  ordersDb:
+    enabled: true
+    image: "mongo:4.4"
+    port: 27017
+
+  rabbitmq:
+    enabled: true
+    image: "rabbitmq:3"
+    port: 5672
+
+ingress:
+  enabled: true
+  className: alb
+  # Leave empty for ALB default DNS; set host when you have Route53.
+  host: ""
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'

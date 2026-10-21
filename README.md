@@ -48,3 +48,7 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 - **4. Promote image to DEV** → ECR `sockshop-<service>-env-1`.
 - **5. Promote image to UAT** → `env-2` (Environment `env-2`).
 - **6. Promote image to PROD** → `env-3` (Environment `prod`).
+
+## Deploy (EKS / Argo CD)
+
+Helm chart + Argo Applications: see [`deploy/README.md`](deploy/README.md).
