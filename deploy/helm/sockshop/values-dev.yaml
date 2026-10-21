@@ -19,3 +19,7 @@ apps:
     replicas: 1
   shipping:
     replicas: 1
+
+data:
+  catalogueDb:
+    enabled: false
