@@ -1,0 +1,35 @@
+{
+  "name": "sockshop-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "css": "tailwindcss -i ./src/index.css -o ./src/generated.css",
+    "css:watch": "tailwindcss -i ./src/index.css -o ./src/generated.css --watch",
+    "dev": "npm run css && vite --port=3000 --host=0.0.0.0",
+    "build": "npm run css && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
+  },
+  "devDependencies": {
+    "@rollup/wasm-node": "^4.68.2",
+    "@tailwindcss/cli": "^4.3.5",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "rollup": "npm:@rollup/wasm-node@^4.52.5",
+    "tailwindcss": "^4.3.5",
+    "typescript": "~5.8.3",
+    "vite": "^6.2.3"
+  }
+}

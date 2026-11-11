@@ -56,7 +56,8 @@ public class AsyncGetService {
             InterruptedException, IOException {
         RequestEntity<Void> request = RequestEntity.get(url).accept(HAL_JSON).build();
         LOG.debug("Requesting: " + request.toString());
-        Resource<T> body = restProxyTemplate.getRestTemplate().exchange(request, type).getBody();
+        // Use HAL-capable template (was incorrectly using plain RestTemplate)
+        Resource<T> body = halTemplate.exchange(request, type).getBody();
         LOG.debug("Received: " + body.toString());
         return new AsyncResult<>(body);
     }
@@ -66,7 +67,7 @@ public class AsyncGetService {
             InterruptedException, IOException {
         RequestEntity<Void> request = RequestEntity.get(url).accept(HAL_JSON).build();
         LOG.debug("Requesting: " + request.toString());
-        Resources<T> body = restProxyTemplate.getRestTemplate().exchange(request, type).getBody();
+        Resources<T> body = halTemplate.exchange(request, type).getBody();
         LOG.debug("Received: " + body.toString());
         return new AsyncResult<>(body);
     }

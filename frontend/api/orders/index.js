@@ -8,6 +8,18 @@
     , helpers   = require("../../helpers")
     , app       = express()
 
+  // Avoid multi-minute hangs when orders/user/carts DNS or TCP fails (common in local/dev).
+  var LOOKUP_MS = Number(process.env.ORDER_LOOKUP_TIMEOUT_MS || 3000)
+  var CREATE_MS = Number(process.env.ORDER_CREATE_TIMEOUT_MS || 15000)
+
+  function parseJson(body, label) {
+    try {
+      return typeof body === "string" ? JSON.parse(body) : body
+    } catch (e) {
+      throw new Error("Invalid JSON from " + label)
+    }
+  }
+
   app.get("/orders", function (req, res, next) {
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
@@ -17,34 +29,38 @@
     }
 
     var custId = req.session.customerId;
-    async.waterfall([
-        function (callback) {
-          request(endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId, function (error, response, body) {
-            if (error) {
-              return callback(error);
-            }
-            console.log("Received response: " + JSON.stringify(body));
-            if (response.statusCode == 404) {
-              console.log("No orders found for user: " + custId);
-              return callback(null, []);
-            }
-            callback(null, JSON.parse(body)._embedded.customerOrders);
-          });
-        }
-    ],
-    function (err, result) {
-      if (err) {
-        return next(err);
+    request({
+      url: endpoints.ordersUrl + "/orders/search/customerId?sort=date&custId=" + custId,
+      timeout: LOOKUP_MS
+    }, function (error, response, body) {
+      if (error) {
+        return next(error);
       }
-      helpers.respondStatusBody(res, 201, JSON.stringify(result));
+      console.log("Received response: " + JSON.stringify(body));
+      if (response.statusCode == 404) {
+        console.log("No orders found for user: " + custId);
+        return helpers.respondStatusBody(res, 201, JSON.stringify([]));
+      }
+      try {
+        var orders = parseJson(body, "orders")._embedded.customerOrders;
+        helpers.respondStatusBody(res, 201, JSON.stringify(orders || []));
+      } catch (e) {
+        next(e);
+      }
     });
   });
 
   app.get("/orders/*", function (req, res, next) {
     var url = endpoints.ordersUrl + req.url.toString();
-    request.get(url).pipe(res);
+    request.get({ url: url, timeout: LOOKUP_MS }).pipe(res);
   });
 
+  /**
+   * Place order — optimized path:
+   * 1) Parallel GET addresses + cards (skip serial customer round-trip; URLs are known)
+   * 2) Fail fast if address/card missing
+   * 3) POST orders service (which fans out payment + shipping)
+   */
   app.post("/orders", function(req, res, next) {
     console.log("Request received with body: " + JSON.stringify(req.body));
     var logged_in = req.cookies.logged_in;
@@ -54,92 +70,65 @@
     }
 
     var custId = req.session.customerId;
+    var customerHref = endpoints.customersUrl + "/" + custId
+    var addressesUrl = customerHref + "/addresses"
+    var cardsUrl = customerHref + "/cards"
 
-    async.waterfall([
-        function (callback) {
-          request(endpoints.customersUrl + "/" + custId, function (error, response, body) {
-            if (error || body.status_code === 500) {
-              callback(error);
-              return;
+    async.parallel({
+      address: function (callback) {
+        request.get({ url: addressesUrl, timeout: LOOKUP_MS }, function (error, response, body) {
+          if (error) return callback(error);
+          try {
+            var jsonBody = parseJson(body, "addresses");
+            if (jsonBody.status_code === 500 || !jsonBody._embedded || !jsonBody._embedded.address || !jsonBody._embedded.address[0]) {
+              return callback(new Error("No shipping address on file"));
             }
-            console.log("Received response: " + JSON.stringify(body));
-            var jsonBody = JSON.parse(body);
-            var customerlink = jsonBody._links.customer.href;
-            var addressLink = jsonBody._links.addresses.href;
-            var cardLink = jsonBody._links.cards.href;
-            var order = {
-              "customer": customerlink,
-              "address": null,
-              "card": null,
-              "items": endpoints.cartsUrl + "/" + custId + "/items"
-            };
-            callback(null, order, addressLink, cardLink);
-          });
-        },
-        function (order, addressLink, cardLink, callback) {
-          async.parallel([
-              function (callback) {
-                console.log("GET Request to: " + addressLink);
-                request.get(addressLink, function (error, response, body) {
-                  if (error) {
-                    callback(error);
-                    return;
-                  }
-                  console.log("Received response: " + JSON.stringify(body));
-                  var jsonBody = JSON.parse(body);
-                  if (jsonBody.status_code !== 500 && jsonBody._embedded.address[0] != null) {
-                    order.address = jsonBody._embedded.address[0]._links.self.href;
-                  }
-                  callback();
-                });
-              },
-              function (callback) {
-                console.log("GET Request to: " + cardLink);
-                request.get(cardLink, function (error, response, body) {
-                  if (error) {
-                    callback(error);
-                    return;
-                  }
-                  console.log("Received response: " + JSON.stringify(body));
-                  var jsonBody = JSON.parse(body);
-                  if (jsonBody.status_code !== 500 && jsonBody._embedded.card[0] != null) {
-                    order.card = jsonBody._embedded.card[0]._links.self.href;
-                  }
-                  callback();
-                });
-              }
-          ], function (err, result) {
-            if (err) {
-              callback(err);
-              return;
+            callback(null, jsonBody._embedded.address[0]._links.self.href);
+          } catch (e) {
+            callback(e);
+          }
+        });
+      },
+      card: function (callback) {
+        request.get({ url: cardsUrl, timeout: LOOKUP_MS }, function (error, response, body) {
+          if (error) return callback(error);
+          try {
+            var jsonBody = parseJson(body, "cards");
+            if (jsonBody.status_code === 500 || !jsonBody._embedded || !jsonBody._embedded.card || !jsonBody._embedded.card[0]) {
+              return callback(new Error("No payment card on file"));
             }
-            console.log(result);
-            callback(null, order);
-          });
-        },
-        function (order, callback) {
-          var options = {
-            uri: endpoints.ordersUrl + '/orders',
-            method: 'POST',
-            json: true,
-            body: order
-          };
-          console.log("Posting Order: " + JSON.stringify(order));
-          request(options, function (error, response, body) {
-            if (error) {
-              return callback(error);
-            }
-            console.log("Order response: " + JSON.stringify(response));
-            console.log("Order response: " + JSON.stringify(body));
-            callback(null, response.statusCode, body);
-          });
-        }
-    ],
-    function (err, status, result) {
+            callback(null, jsonBody._embedded.card[0]._links.self.href);
+          } catch (e) {
+            callback(e);
+          }
+        });
+      }
+    }, function (err, links) {
       if (err) {
         return next(err);
       }
-      helpers.respondStatusBody(res, status, JSON.stringify(result));
+
+      var order = {
+        customer: customerHref,
+        address: links.address,
+        card: links.card,
+        items: endpoints.cartsUrl + "/" + custId + "/items"
+      };
+
+      console.log("Posting Order: " + JSON.stringify(order));
+      request({
+        uri: endpoints.ordersUrl + "/orders",
+        method: "POST",
+        json: true,
+        body: order,
+        timeout: CREATE_MS
+      }, function (error, response, body) {
+        if (error) {
+          return next(error);
+        }
+        console.log("Order response status: " + response.statusCode);
+        helpers.respondStatusBody(res, response.statusCode, JSON.stringify(body));
+      });
     });
   });
 

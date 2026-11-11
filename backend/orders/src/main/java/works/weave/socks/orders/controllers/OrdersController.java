@@ -52,13 +52,11 @@ public class OrdersController {
     @ResponseBody
     CustomerOrder newOrder(@RequestBody NewOrderResource item) {
         try {
-
             if (item.address == null || item.customer == null || item.card == null || item.items == null) {
                 throw new InvalidOrderException("Invalid order request. Order requires customer, address, card and items.");
             }
 
-
-            LOG.debug("Starting calls");
+            // Fan-out: user address/customer/card + cart items in parallel
             Future<Resource<Address>> addressFuture = asyncGetService.getResource(item.address, new TypeReferences
                     .ResourceType<Address>() {
             });
@@ -71,24 +69,32 @@ public class OrdersController {
             Future<List<Item>> itemsFuture = asyncGetService.getDataList(item.items, new
                     ParameterizedTypeReference<List<Item>>() {
             });
-            LOG.debug("End of calls.");
 
-            float amount = calculateTotal(itemsFuture.get(timeout, TimeUnit.SECONDS));
+            // Resolve once — wall clock ≈ max(downstream), not sum
+            Resource<Address> addressResource = addressFuture.get(timeout, TimeUnit.SECONDS);
+            Resource<Customer> customerResource = customerFuture.get(timeout, TimeUnit.SECONDS);
+            Resource<Card> cardResource = cardFuture.get(timeout, TimeUnit.SECONDS);
+            List<Item> orderItems = itemsFuture.get(timeout, TimeUnit.SECONDS);
 
-            // Call payment service to make sure they've paid
-            PaymentRequest paymentRequest = new PaymentRequest(
-                    addressFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    cardFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    customerFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    amount);
+            if (orderItems == null || orderItems.isEmpty()) {
+                throw new InvalidOrderException("Cannot create order from an empty cart.");
+            }
+
+            Address address = addressResource.getContent();
+            Customer customer = customerResource.getContent();
+            Card card = cardResource.getContent();
+            float amount = calculateTotal(orderItems);
+
+            // Payment must succeed before shipping
+            PaymentRequest paymentRequest = new PaymentRequest(address, card, customer, amount);
             LOG.info("Sending payment request: " + paymentRequest);
-            Future<PaymentResponse> paymentFuture = asyncGetService.postResource(
+            PaymentResponse paymentResponse = asyncGetService.postResource(
                     config.getPaymentUri(),
                     paymentRequest,
                     new ParameterizedTypeReference<PaymentResponse>() {
-                    });
-            PaymentResponse paymentResponse = paymentFuture.get(timeout, TimeUnit.SECONDS);
+                    }).get(timeout, TimeUnit.SECONDS);
             LOG.info("Received payment response: " + paymentResponse);
+
             if (paymentResponse == null) {
                 throw new PaymentDeclinedException("Unable to parse authorisation packet");
             }
@@ -96,20 +102,24 @@ public class OrdersController {
                 throw new PaymentDeclinedException(paymentResponse.getMessage());
             }
 
-            // Ship
-            String customerId = parseId(customerFuture.get(timeout, TimeUnit.SECONDS).getId().getHref());
-            Future<Shipment> shipmentFuture = asyncGetService.postResource(config.getShippingUri(), new Shipment
-                    (customerId), new ParameterizedTypeReference<Shipment>() {
-            });
+            String customerId = customer != null && customer.getId() != null && !customer.getId().isEmpty()
+                    ? customer.getId()
+                    : parseId(customerResource.getId().getHref());
+
+            Shipment shipment = asyncGetService.postResource(
+                    config.getShippingUri(),
+                    new Shipment(customerId),
+                    new ParameterizedTypeReference<Shipment>() {
+                    }).get(timeout, TimeUnit.SECONDS);
 
             CustomerOrder order = new CustomerOrder(
                     null,
                     customerId,
-                    customerFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    addressFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    cardFuture.get(timeout, TimeUnit.SECONDS).getContent(),
-                    itemsFuture.get(timeout, TimeUnit.SECONDS),
-                    shipmentFuture.get(timeout, TimeUnit.SECONDS),
+                    customer,
+                    address,
+                    card,
+                    orderItems,
+                    shipment,
                     Calendar.getInstance().getTime(),
                     amount);
             LOG.debug("Received data: " + order.toString());
@@ -133,23 +143,6 @@ public class OrdersController {
         }
         return matcher.group(0);
     }
-
-//    TODO: Add link to shipping
-//    @RequestMapping(method = RequestMethod.GET, value = "/orders")
-//    public @ResponseBody
-//    ResponseEntity<?> getOrders() {
-//        List<CustomerOrder> customerOrders = customerOrderRepository.findAll();
-//
-//        Resources<CustomerOrder> resources = new Resources<>(customerOrders);
-//
-//        resources.forEach(r -> r);
-//
-//        resources.add(linkTo(methodOn(ShippingController.class, CustomerOrder.getShipment::ge)).withSelfRel());
-//
-//        // add other links as needed
-//
-//        return ResponseEntity.ok(resources);
-//    }
 
     private float calculateTotal(List<Item> items) {
         float amount = 0F;
