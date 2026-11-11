@@ -1,7 +1,12 @@
 # Ignore npm installed packages
 /node_modules
+/web/node_modules
+
+# SPA build (produced in CI / Docker)
+/web/dist
 
 # Ignore coverage reports
 /coverage
 
 .idea
+*.log

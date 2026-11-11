@@ -1,4 +1,4 @@
-/* ESLint — most widely used JS linter. Tuned for legacy Sock Shop front-end. */
+/* ESLint — Express BFF (legacy CommonJS). React app lives under web/ (tsc). */
 module.exports = {
   root: true,
   env: {
@@ -13,21 +13,18 @@ module.exports = {
   },
   ignorePatterns: [
     "node_modules/",
-    "public/js/",
-    "public/css/",
-    "public/fonts/",
+    "web/",
+    "public/",
     "test/",
   ],
   extends: ["eslint:recommended"],
   rules: {
-    // Express/request callbacks commonly leave unused (err, req, res, next, body).
     "no-unused-vars": [
       "error",
       { args: "none", varsIgnorePattern: "^_", caughtErrors: "none" },
     ],
     "no-console": "off",
     "no-empty": ["error", { allowEmptyCatch: true }],
-    // Legacy style in metrics / throw-then-return guards.
     "no-extra-semi": "off",
     "no-redeclare": "off",
     "no-unreachable": "off",

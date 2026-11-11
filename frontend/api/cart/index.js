@@ -8,12 +8,17 @@
     , endpoints = require("../endpoints")
     , app       = express()
 
+  var TIMEOUT_MS = Number(process.env.CART_TIMEOUT_MS || 2500)
+
   // List items in cart for current logged in user.
   app.get("/cart", function (req, res, next) {
     console.log("Request received: " + req.url + ", " + req.query.custId);
     var custId = helpers.getCustomerId(req, app.get("env"));
     console.log("Customer ID: " + custId);
-    request(endpoints.cartsUrl + "/" + custId + "/items", function (error, response, body) {
+    request({
+      url: endpoints.cartsUrl + "/" + custId + "/items",
+      timeout: TIMEOUT_MS
+    }, function (error, response, body) {
       if (error) {
         return next(error);
       }
@@ -27,7 +32,8 @@
     console.log('Attempting to delete cart for user: ' + custId);
     var options = {
       uri: endpoints.cartsUrl + "/" + custId,
-      method: 'DELETE'
+      method: 'DELETE',
+      timeout: TIMEOUT_MS
     };
     request(options, function (error, response, body) {
       if (error) {
@@ -50,7 +56,8 @@
 
     var options = {
       uri: endpoints.cartsUrl + "/" + custId + "/items/" + req.params.id.toString(),
-      method: 'DELETE'
+      method: 'DELETE',
+      timeout: TIMEOUT_MS
     };
     request(options, function (error, response, body) {
       if (error) {
@@ -74,9 +81,24 @@
 
     async.waterfall([
         function (callback) {
-          request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
+          request({
+            url: endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(),
+            timeout: TIMEOUT_MS
+          }, function (error, response, body) {
             console.log(body);
-            callback(error, JSON.parse(body));
+            if (error) {
+              return callback(error);
+            }
+            if (!body) {
+              return callback(new Error("Catalogue returned empty body (is catalogue service up?)"));
+            }
+            var item;
+            try {
+              item = JSON.parse(body);
+            } catch (e) {
+              return callback(new Error("Invalid catalogue response"));
+            }
+            callback(null, item);
           });
         },
         function (item, callback) {
@@ -84,7 +106,8 @@
             uri: endpoints.cartsUrl + "/" + custId + "/items",
             method: 'POST',
             json: true,
-            body: {itemId: item.id, unitPrice: item.price}
+            body: {itemId: item.id, unitPrice: item.price},
+            timeout: TIMEOUT_MS
           };
           console.log("POST to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           request(options, function (error, response, body) {
@@ -122,9 +145,24 @@
 
     async.waterfall([
         function (callback) {
-          request(endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(), function (error, response, body) {
+          request({
+            url: endpoints.catalogueUrl + "/catalogue/" + req.body.id.toString(),
+            timeout: TIMEOUT_MS
+          }, function (error, response, body) {
             console.log(body);
-            callback(error, JSON.parse(body));
+            if (error) {
+              return callback(error);
+            }
+            if (!body) {
+              return callback(new Error("Catalogue returned empty body (is catalogue service up?)"));
+            }
+            var item;
+            try {
+              item = JSON.parse(body);
+            } catch (e) {
+              return callback(new Error("Invalid catalogue response"));
+            }
+            callback(null, item);
           });
         },
         function (item, callback) {
@@ -132,7 +170,8 @@
             uri: endpoints.cartsUrl + "/" + custId + "/items",
             method: 'PATCH',
             json: true,
-            body: {itemId: item.id, quantity: parseInt(req.body.quantity), unitPrice: item.price}
+            body: {itemId: item.id, quantity: parseInt(req.body.quantity), unitPrice: item.price},
+            timeout: TIMEOUT_MS
           };
           console.log("PATCH to carts: " + options.uri + " body: " + JSON.stringify(options.body));
           request(options, function (error, response, body) {

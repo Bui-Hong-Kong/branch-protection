@@ -19,9 +19,19 @@ public final class RestProxyTemplate {
 
     @Autowired RestTemplate restTemplate;
 
+    @Value("${http.connectTimeoutMs:3000}")
+    private int connectTimeoutMs;
+
+    @Value("${http.readTimeoutMs:5000}")
+    private int readTimeoutMs;
+
     @Bean
     public RestTemplate restTemplate() {
-      return new RestTemplate();
+      SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+      // Without these, hung user/carts/payment/shipping calls stall Place Order for a long time.
+      factory.setConnectTimeout(connectTimeoutMs);
+      factory.setReadTimeout(readTimeoutMs);
+      return new RestTemplate(factory);
     }
 
     @Value("${proxy.host:}")
@@ -45,6 +55,8 @@ public final class RestProxyTemplate {
         InetSocketAddress address = new InetSocketAddress(host, portNr);
         Proxy proxy = new Proxy(Proxy.Type.HTTP, address);
         factory.setProxy(proxy);
+        factory.setConnectTimeout(connectTimeoutMs);
+        factory.setReadTimeout(readTimeoutMs);
 
         restTemplate.setRequestFactory(factory);
     }

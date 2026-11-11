@@ -1,98 +1,30 @@
-[![Build Status](https://travis-ci.org/microservices-demo/front-end.svg?branch=master)](https://travis-ci.org/microservices-demo/front-end)
-[![](https://images.microbadger.com/badges/image/weaveworksdemos/front-end.svg)](http://microbadger.com/images/weaveworksdemos/front-end "Get your own image badge on microbadger.com")
-[![Actions Status](https://github.com/microservices-demo/front-end/workflows/ci/badge.svg)](https://github.com/microservices-demo/front-end/workflows/ci/badge.svg)
+# Sock Shop frontend (deploy)
 
+Express **BFF** + React SPA. Built for cluster deploy (same-origin APIs to `catalogue`, `carts`, `user`, `orders`, …).
 
-# DEPRECATED: Front-end app
----
-Front-end application written in [Node.js](https://nodejs.org/en/) that puts together all of the microservices under [microservices-demo](https://github.com/microservices-demo/microservices-demo).
+| Path | Role |
+|------|------|
+| `server.js`, `api/` | BFF proxies to microservices |
+| `web/` | React storefront (Vite + Tailwind) |
+| `web/dist/` | SPA build output (required in production) |
+| `public/img/` | Sock product images (`/img/...`) |
 
-# Build
+**Runtime:** Node **22**, Express **4.21.x**
 
-## Dependencies
+## Container
 
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Version</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><a href="https://docker.com">Docker</a></td>
-      <td>>= 1.12</td>
-    </tr>
-    <tr>
-      <td><a href="https://docs.docker.com/compose/">Docker Compose</a></td>
-      <td>>= 1.8.0</td>
-    </tr>
-    <tr>
-      <td><a href="gnu.org/s/make">Make</a>&nbsp;(optional)</td>
-      <td>>= 4.1</td>
-    </tr>
-  </tbody>
-</table>
-
-## Node
-
-`npm install`
-
-## Docker
-
-`make test-image`
-
-## Docker Compose
-
-`make up`
-
-# Test
-
-**Make sure that the microservices are up & running**
-
-## Unit & Functional tests:
-
-```
-make test
+```bash
+docker build -f Dockerfile.ci -t sockshop-frontend .
 ```
 
-## End-to-End tests:
-  
-To make sure that the test suite is running against the latest (local) version with your changes, you need to manually build
-the image, run the container and attach it to the proper Docker networks.
-There is a make task that will do all this for you:
+Multi-stage: builds `web/` → copies `web/dist` → `npm start` on `:8079`.
 
-```
-make dev
-```
+## CI
 
-That will also tail the logs of the container to make debugging easy.
-Then you can run the tests with:
+`npm run build:web` then Docker build (`02-pre-merge`).
 
-```
-make e2e
-```
+## Cluster
 
-# Run
+Helm/Argo: frontend Service DNS names must match BFF endpoints (`catalogue`, `carts`, `orders`, `user`, `payment`, `shipping`). See `deploy/README.md`.
 
-## Node
-
-`npm start`
-
-## Docker
-
-`make server`
-
-# Use
-
-## Node
-
-`curl http://localhost:8081`
-
-## Docker Compose
-
-`curl http://localhost:8080`
-
-# Push
-
-`GROUP=weaveworksdemos COMMIT=test ./scripts/push.sh`
+Cart / checkout / orders require those services — the UI does **not** use local mock fallbacks in deploy builds.
