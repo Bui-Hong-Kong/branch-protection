@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lab architecture — 1 EC2 + RDS</title>
+  <style>
+    :root {
+      --foreground: #1e293b;
+      --muted-foreground: #64748b;
+      --card: #f8fafc;
+      --border: #e2e8f0;
+      --app: #2563eb;
+      --data: #7c3aed;
+      --rds: #ea580c;
+      --bg: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      color: var(--foreground);
+      background: var(--bg);
+      line-height: 1.4;
+      padding: 24px 16px 48px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 4px; }
+    .sub { color: var(--muted-foreground); font-size: 0.875rem; margin: 0 0 20px; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      margin-bottom: 16px;
+      font-size: 0.8125rem;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .swatch.app { background: var(--app); }
+    .swatch.data { background: var(--data); }
+    .swatch.rds { background: var(--rds); }
+    svg { display: block; width: 100%; height: auto; }
+    .note {
+      margin-top: 20px;
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Lab: 1 EC2 + RDS</h1>
+    <p class="sub">No EKS · Mongo runs on the same EC2 as the app</p>
+    <div class="legend" aria-label="Legend">
+      <span><i class="swatch app" aria-hidden="true"></i> App (ECR images)</span>
+      <span><i class="swatch data" aria-hidden="true"></i> Mongo / RabbitMQ</span>
+      <span><i class="swatch rds" aria-hidden="true"></i> RDS MySQL</span>
+    </div>
+
+    <svg
+      role="img"
+      aria-label="EC2 contains app and Mongo containers; catalogue connects to separate AWS RDS"
+      viewBox="0 0 736 420"
+    >
+      <rect x="24" y="24" width="420" height="372" rx="12" fill="var(--card)" stroke="var(--foreground)" stroke-width="1.5"/>
+      <text x="44" y="52" fill="var(--foreground)" font-weight="600" font-size="15">Your EC2</text>
+      <text x="44" y="72" fill="var(--muted-foreground)" font-size="12">Docker Compose</text>
+
+      <rect x="44" y="96" width="180" height="56" rx="8" fill="#eff6ff" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="56" y="120" fill="var(--foreground)" font-weight="600" font-size="13">frontend</text>
+      <text x="56" y="138" fill="var(--muted-foreground)" font-size="12">UI + BFF</text>
+
+      <rect x="236" y="96" width="180" height="56" rx="8" fill="#eff6ff" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="248" y="120" fill="var(--foreground)" font-weight="600" font-size="13">catalogue</text>
+      <text x="248" y="138" fill="var(--muted-foreground)" font-size="12">product API</text>
+
+      <rect x="44" y="168" width="114" height="56" rx="8" fill="#eff6ff" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="56" y="192" fill="var(--foreground)" font-weight="600" font-size="13">carts</text>
+      <text x="56" y="210" fill="var(--muted-foreground)" font-size="12">cart API</text>
+
+      <rect x="170" y="168" width="114" height="56" rx="8" fill="#eff6ff" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="182" y="192" fill="var(--foreground)" font-weight="600" font-size="13">orders</text>
+      <text x="182" y="210" fill="var(--muted-foreground)" font-size="12">order API</text>
+
+      <rect x="296" y="168" width="120" height="56" rx="8" fill="#eff6ff" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="308" y="192" fill="var(--foreground)" font-weight="600" font-size="13">user + pay</text>
+      <text x="308" y="210" fill="var(--muted-foreground)" font-size="12">+ shipping</text>
+
+      <text x="44" y="258" fill="var(--muted-foreground)" font-size="12">Same machine — data containers</text>
+
+      <rect x="44" y="276" width="114" height="48" rx="8" fill="#f5f3ff" stroke="var(--data)" stroke-width="1.5"/>
+      <text x="56" y="298" fill="var(--foreground)" font-weight="600" font-size="13">Mongo</text>
+      <text x="56" y="314" fill="var(--muted-foreground)" font-size="11">carts-db</text>
+
+      <rect x="170" y="276" width="114" height="48" rx="8" fill="#f5f3ff" stroke="var(--data)" stroke-width="1.5"/>
+      <text x="182" y="298" fill="var(--foreground)" font-weight="600" font-size="13">Mongo</text>
+      <text x="182" y="314" fill="var(--muted-foreground)" font-size="11">orders-db</text>
+
+      <rect x="296" y="276" width="120" height="48" rx="8" fill="#f5f3ff" stroke="var(--data)" stroke-width="1.5"/>
+      <text x="308" y="298" fill="var(--foreground)" font-weight="600" font-size="13">Mongo</text>
+      <text x="308" y="314" fill="var(--muted-foreground)" font-size="11">user-db</text>
+
+      <rect x="44" y="336" width="180" height="40" rx="8" fill="#f5f3ff" stroke="var(--data)" stroke-width="1.5"/>
+      <text x="56" y="362" fill="var(--foreground)" font-weight="600" font-size="13">RabbitMQ</text>
+
+      <path d="M 444 124 L 500 124" fill="none" stroke="var(--foreground)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="448" y="112" fill="var(--muted-foreground)" font-size="12">DSN</text>
+
+      <rect x="508" y="72" width="200" height="120" rx="12" fill="#fff7ed" stroke="var(--rds)" stroke-width="1.5"/>
+      <text x="528" y="108" fill="var(--foreground)" font-weight="600" font-size="15">AWS RDS</text>
+      <text x="528" y="130" fill="var(--muted-foreground)" font-size="12">MySQL</text>
+      <text x="528" y="152" fill="var(--muted-foreground)" font-size="12">catalogue only</text>
+      <text x="528" y="174" fill="var(--muted-foreground)" font-size="12">managed DB</text>
+
+      <text x="508" y="230" fill="var(--muted-foreground)" font-size="12">Not inside EC2</text>
+      <text x="508" y="250" fill="var(--muted-foreground)" font-size="12">Not inside ECR image</text>
+
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--foreground)"/>
+        </marker>
+      </defs>
+    </svg>
+
+    <p class="note">
+      Open this file in a browser. App images come from ECR; Mongo/Rabbit are separate containers on the same EC2; catalogue uses RDS.
+    </p>
+  </div>
+</body>
+</html>
