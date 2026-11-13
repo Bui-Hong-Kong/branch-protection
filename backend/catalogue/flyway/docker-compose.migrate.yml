@@ -1,0 +1,20 @@
+# Run from this directory:
+#   export FLYWAY_URL='jdbc:mysql://host.docker.internal:3306/socksdb?allowPublicKeyRetrieval=true&useSSL=false'
+#   export FLYWAY_USER=catalogue_user
+#   export FLYWAY_PASSWORD='<PASSWORD>'   # do not commit
+#   docker compose -f docker-compose.migrate.yml run --rm flyway
+#
+# Against AWS RDS from EC2: use the RDS endpoint in FLYWAY_URL (same VPC/SG).
+
+services:
+  flyway:
+    image: flyway/flyway:10-alpine
+    volumes:
+      - ./sql:/flyway/sql:ro
+    environment:
+      FLYWAY_URL: ${FLYWAY_URL}
+      FLYWAY_USER: ${FLYWAY_USER}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD}
+      FLYWAY_CONNECT_RETRIES: "10"
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    command: ["migrate"]

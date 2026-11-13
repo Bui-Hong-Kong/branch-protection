@@ -12,6 +12,10 @@ This service is built, tested and released by travis.
 We'd love to see community contributions. We like to keep it simple and use Github issues to track bugs and feature requests and pull requests to manage contributions.
 
 
+### Database (Flyway / RDS)
+
+Schema + seed for MySQL/`socksdb` live under [`flyway/`](./flyway/). Run once against RDS (or local MySQL) before starting the catalogue service — see [`flyway/README.md`](./flyway/README.md). Do not put DB passwords in git.
+
 ### API Spec
 
 Checkout the API Spec [here](http://microservices-demo.github.io/api/index?url=https://raw.githubusercontent.com/microservices-demo/catalogue/master/api-spec/catalogue.json)

@@ -1,0 +1,11 @@
+# Copy to flyway.toml locally — do not commit real passwords.
+# Or pass JDBC URL via env (see README).
+
+[flyway]
+locations = ["filesystem:sql"]
+connectRetries = 10
+
+# Example (placeholders only):
+# url = "jdbc:mysql://<RDS_ENDPOINT>:3306/socksdb?allowPublicKeyRetrieval=true&useSSL=true&requireSSL=false"
+# user = "<CATALOGUE_DB_USER>"
+# password = "<CATALOGUE_DB_PASSWORD>"
