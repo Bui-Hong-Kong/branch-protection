@@ -1,6 +1,11 @@
-# Sock Shop deploy (Helm + Argo CD)
+# Sock Shop deploy (Helm + Argo CD) — **Track B**
 
-GitOps manifests for EKS namespaces created by [`branch-protection-infra`](https://github.com/Bui-Hong-Kong/branch-protection-infra):
+GitOps manifests for EKS namespaces from [`branch-protection-infra`](https://github.com/Bui-Hong-Kong/branch-protection-infra) (**Track B**).
+
+For the cheap **Track A** path (EC2 + Compose + RDS), do **not** use this folder — see app root README and [`sockshop-ec2-lab`](https://github.com/Bui-Hong-Kong/sockshop-ec2-lab).
+
+## Track B namespaces
+
 
 | Env | Namespace | ECR suffix | Values |
 | --- | --- | --- | --- |

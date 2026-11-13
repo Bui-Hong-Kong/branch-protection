@@ -50,9 +50,20 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 - **6. Promote image to PROD** → `env-3` (Environment `prod`).
 - **7. Migrate catalogue DB** → Flyway on RDS/`socksdb` (manual; secrets `FLYWAY_*`; not image build).
 
-GitHub → infra flow (EC2 + RDS lab): open [`docs/github-to-infra-flow.html`](docs/github-to-infra-flow.html) in a browser.
-Runtime diagram: [`docs/ec2-rds-lab-architecture.html`](docs/ec2-rds-lab-architecture.html).
+## Infra tracks (tách repo)
 
-## Deploy (EKS / Argo CD)
+App **chung**; infra **hai track** — không trộn Terraform.
 
-Helm chart + Argo Applications (EKS path): see [`deploy/README.md`](deploy/README.md). The EC2+RDS lab runs Docker Compose on EC2 with RDS/Flyway as in the diagrams above.
+| Track | Repo | Runtime | Khi nào dùng |
+| --- | --- | --- | --- |
+| **A · đơn giản** | [`sockshop-ec2-lab`](https://github.com/Bui-Hong-Kong/sockshop-ec2-lab) | 1 EC2 + Compose + RDS + Flyway | Lab hàng ngày, ít tiền |
+| **B · full 3 ns** | [`branch-protection-infra`](https://github.com/Bui-Hong-Kong/branch-protection-infra) | EKS + Argo + `sockshop-dev/uat/prod` | Multi-env / GitOps (đắt hơn) |
+
+- Track A diagrams: [`docs/github-to-infra-flow.html`](docs/github-to-infra-flow.html), [`docs/ec2-rds-lab-architecture.html`](docs/ec2-rds-lab-architecture.html)
+- Track B deploy: [`deploy/README.md`](deploy/README.md) (Helm + Argo Applications)
+- Mỗi infra repo có `TRACK.md` mô tả ranh giới
+
+## Deploy
+
+- **Track A:** Docker Compose trên EC2; catalogue → RDS; Flyway trước khi start catalogue.
+- **Track B:** Helm + Argo vào 3 namespace; xem `deploy/`.
