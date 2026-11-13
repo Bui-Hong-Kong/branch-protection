@@ -52,12 +52,23 @@ flyway \
   migrate
 ```
 
+## GitHub Actions (separate from image workflows)
+
+Workflow: **7. Migrate catalogue DB** (`.github/workflows/07-migrate-catalogue-db.yml`).
+
+1. Add repo secrets: `FLYWAY_URL`, `FLYWAY_USER`, `FLYWAY_PASSWORD`.
+2. Actions → **7. Migrate catalogue DB** → Run workflow.
+3. Prefer `info` first; then `migrate`.
+4. Private RDS: choose runner **`self-hosted`** (EC2 in the same VPC). GitHub-hosted cannot reach private RDS.
+
+This workflow does **not** build or push images.
+
 ## When to run
 
 | Moment | Action |
 |--------|--------|
 | New RDS / empty `socksdb` | `migrate` once |
-| After adding `V3__...sql` | `migrate` again (CI or EC2 bootstrap) |
+| After adding `V3__...sql` | `migrate` again (workflow or EC2) |
 | App deploy only | No need if schema already current |
 
 Catalogue pods/containers only **read** the DB; they do not run Flyway.
@@ -66,12 +77,13 @@ Catalogue pods/containers only **read** the DB; they do not run Flyway.
 
 | Question | Answer |
 |----------|--------|
-| Where is the DB password stored? | Env / Secrets Manager / SSM — **not** in git |
-| Who can access? | IAM + RDS security group (EC2/CIDR that runs Flyway) |
-| Rotation | Rotate RDS user password; update secret; re-run not required for Flyway history |
-| Committed to git? | **No** real secrets — only `.example` and SQL |
+| Where is the DB password stored? | GitHub Actions secrets `FLYWAY_*` and/or SSM — **not** in git |
+| Who can access? | Repo admins + runner that can reach RDS (SG/VPC) |
+| Rotation | Rotate RDS password; update `FLYWAY_PASSWORD`; re-run not required for Flyway history |
+| Committed to git? | **No** — only `.example` and SQL |
 
 ## Related
 
 - Catalogue service DSN: Helm secret `catalogue-db` / flag `-DSN=...`
 - Lab diagram: `docs/ec2-rds-lab-architecture.html`
+- Image promote: workflows `04`–`06` (unchanged)

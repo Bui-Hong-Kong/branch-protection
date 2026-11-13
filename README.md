@@ -48,6 +48,7 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 - **4. Promote image to DEV** → ECR `sockshop-<service>-env-1`.
 - **5. Promote image to UAT** → `env-2` (Environment `env-2`).
 - **6. Promote image to PROD** → `env-3` (Environment `prod`).
+- **7. Migrate catalogue DB** → Flyway on RDS/`socksdb` (manual; secrets `FLYWAY_*`; not image build).
 
 ## Deploy (EKS / Argo CD)
 

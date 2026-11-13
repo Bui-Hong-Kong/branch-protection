@@ -1,0 +1,81 @@
+# Manual Flyway migrate for catalogue MySQL/RDS (socksdb).
+# Separate from image build/promote workflows.
+#
+# Prerequisites (repo secrets — do not commit):
+#   FLYWAY_URL       jdbc:mysql://<RDS_ENDPOINT>:3306/socksdb?allowPublicKeyRetrieval=true&useSSL=true
+#   FLYWAY_USER      catalogue DB user
+#   FLYWAY_PASSWORD  catalogue DB password
+#
+# Private RDS: choose runner "self-hosted" (EC2 in the same VPC/SG).
+# Public/lab reachable RDS: ubuntu-latest is fine.
+# Default command is "info" (read-only). Use "migrate" to apply pending scripts.
+
+name: 7. Migrate catalogue DB
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Flyway command
+        type: choice
+        required: true
+        default: info
+        options:
+          - info
+          - migrate
+      runner:
+        description: GitHub-hosted or self-hosted (EC2) runner
+        type: choice
+        required: true
+        default: ubuntu-latest
+        options:
+          - ubuntu-latest
+          - self-hosted
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate-catalogue-db
+  cancel-in-progress: false
+
+jobs:
+  flyway:
+    name: Flyway ${{ inputs.command }}
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require Flyway secrets
+        env:
+          FLYWAY_URL: ${{ secrets.FLYWAY_URL }}
+          FLYWAY_USER: ${{ secrets.FLYWAY_USER }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in FLYWAY_URL FLYWAY_USER FLYWAY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing secret $name. Add it under repo Settings → Secrets."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Run Flyway (${{ inputs.command }})
+        working-directory: backend/catalogue/flyway
+        env:
+          FLYWAY_URL: ${{ secrets.FLYWAY_URL }}
+          FLYWAY_USER: ${{ secrets.FLYWAY_USER }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD/sql:/flyway/sql:ro" \
+            -e FLYWAY_URL \
+            -e FLYWAY_USER \
+            -e FLYWAY_PASSWORD \
+            -e FLYWAY_LOCATIONS=filesystem:/flyway/sql \
+            -e FLYWAY_CONNECT_RETRIES=10 \
+            flyway/flyway:10-alpine \
+            "${{ inputs.command }}"
