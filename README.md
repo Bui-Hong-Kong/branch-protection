@@ -56,7 +56,7 @@ App **chung**; infra **hai track** — không trộn Terraform.
 
 | Track | Repo | Runtime | Khi nào dùng |
 | --- | --- | --- | --- |
-| **A · đơn giản** | [`sockshop-ec2-lab`](https://github.com/Bui-Hong-Kong/sockshop-ec2-lab) | 1 EC2 + Compose + RDS + Flyway | Lab hàng ngày, ít tiền |
+| **A · đơn giản** | [`sockshop-ec2-lab`](https://github.com/Bui-Hong-Kong/sockshop-ec2-lab) | 1–2 EC2 + Compose + RDS + Flyway | Lab hàng ngày + **incident / failover** (fence→promote) |
 | **B · full 3 ns** | [`branch-protection-infra`](https://github.com/Bui-Hong-Kong/branch-protection-infra) | EKS + Argo + `sockshop-dev/uat/prod` | Multi-env / GitOps (đắt hơn) |
 
 - Track A diagrams: [`docs/github-to-infra-flow.html`](docs/github-to-infra-flow.html), [`docs/ec2-rds-lab-architecture.html`](docs/ec2-rds-lab-architecture.html)
@@ -65,5 +65,5 @@ App **chung**; infra **hai track** — không trộn Terraform.
 
 ## Deploy
 
-- **Track A:** Docker Compose trên EC2; catalogue → RDS; Flyway trước khi start catalogue.
+- **Track A:** Docker Compose trên EC2; catalogue → RDS; Flyway; Phase 3 = game day failover / fence DB.
 - **Track B:** Helm + Argo vào 3 namespace; xem `deploy/`.
