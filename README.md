@@ -50,6 +50,9 @@ Mở PR vào `main`. Khi `main` có commit mới: **Update branch** trên PR, ho
 - **6. Promote image to PROD** → `env-3` (Environment `prod`).
 - **7. Migrate catalogue DB** → Flyway on RDS/`socksdb` (manual; secrets `FLYWAY_*`; not image build).
 
+GitHub → infra flow (EC2 + RDS lab): open [`docs/github-to-infra-flow.html`](docs/github-to-infra-flow.html) in a browser.
+Runtime diagram: [`docs/ec2-rds-lab-architecture.html`](docs/ec2-rds-lab-architecture.html).
+
 ## Deploy (EKS / Argo CD)
 
-Helm chart + Argo Applications: see [`deploy/README.md`](deploy/README.md).
+Helm chart + Argo Applications (EKS path): see [`deploy/README.md`](deploy/README.md). The EC2+RDS lab runs Docker Compose on EC2 with RDS/Flyway as in the diagrams above.

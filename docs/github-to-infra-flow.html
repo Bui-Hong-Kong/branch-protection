@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flow — GitHub → Infra (Sock Shop lab)</title>
+  <style>
+    :root {
+      --foreground: #1e293b;
+      --muted-foreground: #64748b;
+      --card: #f8fafc;
+      --border: #e2e8f0;
+      --git: #2563eb;
+      --ci: #0891b2;
+      --ecr: #7c3aed;
+      --flyway: #ca8a04;
+      --run: #16a34a;
+      --rds: #ea580c;
+      --bg: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--foreground);
+      background: var(--bg);
+      line-height: 1.45;
+      padding: 24px 16px 48px;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 4px; }
+    h2 { font-size: 1rem; font-weight: 600; margin: 28px 0 10px; }
+    .sub { color: var(--muted-foreground); font-size: 0.875rem; margin: 0 0 20px; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-bottom: 16px;
+      font-size: 0.8125rem;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .swatch.git { background: var(--git); }
+    .swatch.ci { background: var(--ci); }
+    .swatch.ecr { background: var(--ecr); }
+    .swatch.flyway { background: var(--flyway); }
+    .swatch.run { background: var(--run); }
+    .swatch.rds { background: var(--rds); }
+    svg { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+    ol.steps {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.875rem;
+    }
+    ol.steps li { margin-bottom: 8px; }
+    ol.steps code {
+      font-size: 0.8125rem;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+    }
+    .note a { color: var(--git); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f5f9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Flow: GitHub → Infra</h1>
+    <p class="sub">
+      Sock Shop lab · protected <code>main</code> · images via ECR · catalogue DB via Flyway/RDS · app runs on EC2
+    </p>
+
+    <div class="legend" aria-label="Legend">
+      <span><i class="swatch git" aria-hidden="true"></i> Git / PR</span>
+      <span><i class="swatch ci" aria-hidden="true"></i> GitHub Actions</span>
+      <span><i class="swatch ecr" aria-hidden="true"></i> ECR (images)</span>
+      <span><i class="swatch flyway" aria-hidden="true"></i> Flyway (DB)</span>
+      <span><i class="swatch run" aria-hidden="true"></i> EC2 runtime</span>
+      <span><i class="swatch rds" aria-hidden="true"></i> RDS MySQL</span>
+    </div>
+
+    <svg
+      role="img"
+      aria-label="Flow from developer through GitHub Actions to ECR, Flyway, EC2, and RDS"
+      viewBox="0 0 860 520"
+    >
+      <!-- Dev -->
+      <rect x="24" y="28" width="140" height="72" rx="10" fill="#eff6ff" stroke="var(--git)" stroke-width="1.5"/>
+      <text x="40" y="56" fill="var(--foreground)" font-weight="600" font-size="13">Developer</text>
+      <text x="40" y="76" fill="var(--muted-foreground)" font-size="11">branch + PR</text>
+
+      <!-- GitHub -->
+      <rect x="200" y="20" width="220" height="200" rx="12" fill="#fff" stroke="var(--git)" stroke-width="1.5"/>
+      <text x="216" y="44" fill="var(--foreground)" font-weight="600" font-size="14">GitHub</text>
+      <rect x="216" y="56" width="188" height="36" rx="6" fill="#eff6ff" stroke="var(--git)" stroke-width="1"/>
+      <text x="228" y="78" fill="var(--foreground)" font-size="12">2. Pre-merge checks</text>
+      <rect x="216" y="102" width="188" height="36" rx="6" fill="#eff6ff" stroke="var(--git)" stroke-width="1"/>
+      <text x="228" y="124" fill="var(--foreground)" font-size="12">Merge → main</text>
+      <rect x="216" y="148" width="188" height="52" rx="6" fill="#ecfeff" stroke="var(--ci)" stroke-width="1.5"/>
+      <text x="228" y="170" fill="var(--foreground)" font-weight="600" font-size="12">3. Release</text>
+      <text x="228" y="188" fill="var(--muted-foreground)" font-size="11">tag service-vX.Y.Z</text>
+
+      <!-- Actions promote / migrate -->
+      <rect x="460" y="20" width="376" height="200" rx="12" fill="#fff" stroke="var(--ci)" stroke-width="1.5"/>
+      <text x="476" y="44" fill="var(--foreground)" font-weight="600" font-size="14">GitHub Actions (manual)</text>
+
+      <rect x="476" y="58" width="168" height="70" rx="8" fill="#f5f3ff" stroke="var(--ecr)" stroke-width="1.5"/>
+      <text x="488" y="82" fill="var(--foreground)" font-weight="600" font-size="12">4–6. Promote image</text>
+      <text x="488" y="100" fill="var(--muted-foreground)" font-size="11">DEV → UAT → PROD</text>
+      <text x="488" y="116" fill="var(--muted-foreground)" font-size="11">build + push ECR</text>
+
+      <rect x="656" y="58" width="160" height="70" rx="8" fill="#fefce8" stroke="var(--flyway)" stroke-width="1.5"/>
+      <text x="668" y="82" fill="var(--foreground)" font-weight="600" font-size="12">7. Migrate DB</text>
+      <text x="668" y="100" fill="var(--muted-foreground)" font-size="11">Flyway info/migrate</text>
+      <text x="668" y="116" fill="var(--muted-foreground)" font-size="11">separate from images</text>
+
+      <text x="476" y="158" fill="var(--muted-foreground)" font-size="11">OIDC → AWS · FLYWAY_* secrets · migrate is not part of image build</text>
+      <text x="476" y="178" fill="var(--muted-foreground)" font-size="11">Private RDS: use a self-hosted runner on EC2</text>
+      <text x="476" y="198" fill="var(--muted-foreground)" font-size="11">Safe order: migrate (if needed), then roll the app</text>
+
+      <!-- Arrows top -->
+      <path d="M164 64 H200" fill="none" stroke="var(--foreground)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <path d="M420 174 H460" fill="none" stroke="var(--foreground)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- AWS -->
+      <rect x="24" y="260" width="812" height="232" rx="12" fill="#fff" stroke="var(--border)" stroke-width="1.5"/>
+      <text x="40" y="286" fill="var(--foreground)" font-weight="600" font-size="14">AWS</text>
+
+      <rect x="40" y="304" width="200" height="160" rx="10" fill="#f5f3ff" stroke="var(--ecr)" stroke-width="1.5"/>
+      <text x="56" y="332" fill="var(--foreground)" font-weight="600" font-size="13">Amazon ECR</text>
+      <text x="56" y="354" fill="var(--muted-foreground)" font-size="11">sockshop-&lt;svc&gt;-env-1</text>
+      <text x="56" y="372" fill="var(--muted-foreground)" font-size="11">…-env-2 · …-env-3</text>
+      <text x="56" y="400" fill="var(--muted-foreground)" font-size="11">App images (frontend,</text>
+      <text x="56" y="416" fill="var(--muted-foreground)" font-size="11">catalogue, carts, …)</text>
+      <text x="56" y="440" fill="var(--muted-foreground)" font-size="11">Mongo is not in the image</text>
+
+      <rect x="280" y="304" width="320" height="160" rx="10" fill="#f0fdf4" stroke="var(--run)" stroke-width="1.5"/>
+      <text x="296" y="332" fill="var(--foreground)" font-weight="600" font-size="13">EC2 (Docker Compose)</text>
+      <text x="296" y="354" fill="var(--muted-foreground)" font-size="11">Pull images from ECR</text>
+      <text x="296" y="372" fill="var(--muted-foreground)" font-size="11">frontend · catalogue · carts · orders · …</text>
+      <text x="296" y="400" fill="var(--muted-foreground)" font-size="11">+ Mongo (cart / order / user)</text>
+      <text x="296" y="416" fill="var(--muted-foreground)" font-size="11">+ RabbitMQ (if used)</text>
+      <text x="296" y="440" fill="var(--muted-foreground)" font-size="11">User → browser → frontend :80</text>
+
+      <rect x="640" y="304" width="176" height="160" rx="10" fill="#fff7ed" stroke="var(--rds)" stroke-width="1.5"/>
+      <text x="656" y="332" fill="var(--foreground)" font-weight="600" font-size="13">RDS MySQL</text>
+      <text x="656" y="354" fill="var(--muted-foreground)" font-size="11">socksdb</text>
+      <text x="656" y="372" fill="var(--muted-foreground)" font-size="11">catalogue only</text>
+      <text x="656" y="400" fill="var(--muted-foreground)" font-size="11">Schema / seed:</text>
+      <text x="656" y="416" fill="var(--muted-foreground)" font-size="11">Flyway V1 + V2</text>
+      <text x="656" y="440" fill="var(--muted-foreground)" font-size="11">Outside EC2 / ECR</text>
+
+      <!-- arrows into AWS -->
+      <path d="M560 220 V260" fill="none" stroke="var(--ecr)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="568" y="248" fill="var(--ecr)" font-size="10">image</text>
+      <path d="M736 220 V304" fill="none" stroke="var(--flyway)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="742" y="280" fill="var(--flyway)" font-size="10">migrate</text>
+      <path d="M240 384 H280" fill="none" stroke="var(--foreground)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <path d="M600 384 H640" fill="none" stroke="var(--foreground)" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="448" y="378" fill="var(--muted-foreground)" font-size="10">catalogue → RDS</text>
+
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--foreground)"/>
+        </marker>
+      </defs>
+    </svg>
+
+    <h2>How it runs</h2>
+    <ol class="steps">
+      <li><strong>Code</strong> — create a branch, open a PR into <code>main</code> (no direct push).</li>
+      <li><strong>2. Pre-merge</strong> — lint/build green → merge (or lab bypass).</li>
+      <li><strong>3. Release</strong> — Conventional Commits on <code>main</code> → tag <code>&lt;service&gt;-vX.Y.Z</code>.</li>
+      <li><strong>4–6. Promote image</strong> — manual: build the service → push ECR <code>env-1</code> / <code>env-2</code> / <code>env-3</code>. Does <em>not</em> run Flyway.</li>
+      <li><strong>7. Migrate catalogue DB</strong> — manual, separate workflow: Flyway <code>info</code> then <code>migrate</code> on RDS <code>socksdb</code> (new RDS or new schema).</li>
+      <li><strong>EC2</strong> — pull images from ECR, <code>docker compose up</code>; catalogue uses the RDS DSN; Mongo/Rabbit on the same EC2.</li>
+    </ol>
+
+    <h2>Workflow responsibilities</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Workflow</th>
+          <th>Does</th>
+          <th>Does not</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2. Pre-merge</td>
+          <td>Validate the PR</td>
+          <td>Deploy / migrate</td>
+        </tr>
+        <tr>
+          <td>3. Release</td>
+          <td>Create Git tags / Releases</td>
+          <td>Build images</td>
+        </tr>
+        <tr>
+          <td>4–6. Promote image</td>
+          <td>Build + push to ECR</td>
+          <td>Change RDS schema</td>
+        </tr>
+        <tr>
+          <td>7. Migrate catalogue DB</td>
+          <td>Flyway on <code>socksdb</code></td>
+          <td>Build / push images</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="note">
+      Open this file in a browser.
+      Runtime EC2 + RDS diagram:
+      <a href="./ec2-rds-lab-architecture.html">ec2-rds-lab-architecture.html</a>.
+      Flyway SQL: <code>backend/catalogue/flyway/</code>.
+      The repo still has a Helm/Argo (EKS) path under <code>deploy/</code> — this lab prefers EC2 + RDS as shown above.
+    </p>
+  </div>
+</body>
+</html>
