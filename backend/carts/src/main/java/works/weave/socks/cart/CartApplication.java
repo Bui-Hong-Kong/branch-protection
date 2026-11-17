@@ -1,13 +1,16 @@
 package works.weave.socks.cart;
 
-import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Prometheus simpleclient_spring_boot {@code @EnablePrometheusEndpoint} is incompatible with
+ * Spring Boot 2 (missing AbstractEndpoint) and prevented the app from starting — so add-to-cart
+ * failed with ENOTFOUND carts while the container crash-looped.
+ */
 @SpringBootApplication
-@EnablePrometheusEndpoint
 public class CartApplication {
     private static final Logger LOG = LoggerFactory.getLogger(CartApplication.class);
 
