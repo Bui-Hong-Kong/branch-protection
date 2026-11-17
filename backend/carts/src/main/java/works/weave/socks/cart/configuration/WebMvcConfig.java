@@ -1,19 +1,12 @@
 package works.weave.socks.cart.configuration;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.handler.MappedInterceptor;
-import works.weave.socks.cart.middleware.HTTPMonitoringInterceptor;
 
+/**
+ * Previous HTTPMonitoringInterceptor required Spring Data REST {@code JpaHelper}, which is not
+ * available for this Mongo-only carts service and blocked startup after the Prometheus fix.
+ * Re-enable metrics with a Mongo-safe interceptor if needed later.
+ */
 @Configuration
 public class WebMvcConfig {
-    @Bean
-    HTTPMonitoringInterceptor httpMonitoringInterceptor() {
-        return new HTTPMonitoringInterceptor();
-    }
-
-    @Bean
-    public MappedInterceptor myMappedInterceptor(HTTPMonitoringInterceptor interceptor) {
-        return new MappedInterceptor(new String[]{"/**"}, interceptor);
-    }
 }
